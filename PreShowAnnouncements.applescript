@@ -477,3 +477,93 @@ on buildPreShow(showTimeText)
 	end if
 	return summary
 end buildPreShow
+
+
+--------------------------------------------------------------------------------
+-- rescheduling an existing list in place
+--------------------------------------------------------------------------------
+
+-- the show time has moved and the list is already built. re-stamp what is there
+-- rather than tearing it down, so anything the operator has tweaked by hand
+-- since the build, levels, routing, a swapped file, survives the change.
+on rescheduleList(theList, newTimeText, theSchedule)
+	set showSecs to secondsOfDayFromText(newTimeText)
+	set newTimeText to hhmmFromSeconds(showSecs)
+	set listName to kListPrefix & " " & newTimeText
+	set movedCount to 0
+	set reportLines to {}
+
+	tell application id "com.figure53.QLab.5"
+		tell front workspace
+			set q name of theList to listName
+			set theCues to every cue of theList
+
+			-- audio cues are matched to schedule rows by their order in the
+			-- list, which is the order the build put them in. that holds as long
+			-- as nobody has reordered or deleted cues by hand; if they have,
+			-- rebuild instead of rescheduling.
+			set scheduleIndex to 0
+			repeat with theCue in theCues
+				if (q type of theCue) is "Audio" then
+					set scheduleIndex to scheduleIndex + 1
+					if scheduleIndex ≤ (count of theSchedule) then
+						set theRow to item scheduleIndex of theSchedule
+						set minsBefore to item 1 of theRow
+						set baseName to item 2 of theRow
+
+						set fireSecs to my wrapSeconds(showSecs - (minsBefore * 60))
+						set fireText to my hhmmssFromSeconds(fireSecs)
+
+						set wall clock hours of theCue to (fireSecs div 3600)
+						set wall clock minutes of theCue to ((fireSecs mod 3600) div 60)
+						set wall clock seconds of theCue to (fireSecs mod 60)
+						my enableWallClock(theCue)
+						set armed of theCue to true
+						set q name of theCue to (fireText & "  -  " & baseName & ¬
+							"  (T-" & minsBefore & ")")
+						set movedCount to movedCount + 1
+						set end of reportLines to ("  " & fireText & "   T-" & ¬
+							minsBefore & tab & baseName)
+					end if
+				else if (q type of theCue) is "Script" then
+					-- the cleanup cue needs its script rewritten as well as its
+					-- time moved, because it finds the list by name and the list
+					-- has just been renamed to the new show time
+					set cleanupSecs to my wrapSeconds(showSecs - ¬
+						(kCleanupOffsetMinutes * 60))
+					set cleanupText to my hhmmssFromSeconds(cleanupSecs)
+					set wall clock hours of theCue to (cleanupSecs div 3600)
+					set wall clock minutes of theCue to ¬
+						((cleanupSecs mod 3600) div 60)
+					set wall clock seconds of theCue to (cleanupSecs mod 60)
+					my enableWallClock(theCue)
+					set armed of theCue to true
+					try
+						set script source of theCue to ¬
+							my cleanupScriptSource(listName)
+					end try
+					set q name of theCue to (cleanupText & "  -  CLEAN UP: " & ¬
+						kCleanupAction & " this cue list")
+					set end of reportLines to ("  " & cleanupText & "   T-" & ¬
+						kCleanupOffsetMinutes & tab & "CLEAN UP (" & ¬
+						kCleanupAction & " cue list)")
+				else if kAddMemoCue and (q type of theCue) is "Memo" then
+					set q name of theCue to ("SHOW AT " & newTimeText & ¬
+						"  -  delete this cue list after the show")
+				end if
+			end repeat
+		end tell
+	end tell
+
+	set summary to "Rescheduled " & movedCount & " cues to a " & newTimeText & ¬
+		" show." & return & return
+	repeat with L in reportLines
+		set summary to summary & L & return
+	end repeat
+	reportToControlCue(newTimeText, movedCount)
+	if not kSilent then
+		display dialog summary buttons {"OK"} default button 1 with title ¬
+			"Pre-Show Announcements"
+	end if
+	return summary
+end rescheduleList
