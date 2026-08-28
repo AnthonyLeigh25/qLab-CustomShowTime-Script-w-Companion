@@ -250,3 +250,55 @@ on showTimeFromControlCue()
 	end if
 	return hhmmFromSeconds(s)
 end showTimeFromControlCue
+
+
+--------------------------------------------------------------------------------
+-- the build itself
+--------------------------------------------------------------------------------
+
+on buildPreShow(showTimeText)
+	set theSchedule to announcementSchedule()
+	-- round trip through seconds so whatever the operator typed comes out in
+	-- one shape, and the list name and the cue names cannot disagree
+	set showSecs to secondsOfDayFromText(showTimeText)
+	set showTimeText to hhmmFromSeconds(showSecs)
+	set listName to kListPrefix & " " & showTimeText
+	set builtCount to 0
+
+	warnAboutMissingFiles(theSchedule)
+
+	tell application id "com.figure53.QLab.5"
+		if (count of workspaces) is 0 then ¬
+			error "No QLab workspace is open. Open your workspace and try again."
+
+		tell front workspace
+
+			-- make the list and check we really have it. everything below writes
+			-- into this one list, so carrying on without it would scatter cues
+			-- through the operator's show file.
+			make type "Cue List"
+			set theList to last cue list
+			set q name of theList to listName
+			if (q name of theList) is not listName then ¬
+				error "Could not create or name the new cue list."
+			try
+				set armed of theList to true
+			end try
+
+			-- a memo at the top, so the show time is legible from across the
+			-- booth without reading trigger times off individual cues
+			if kAddMemoCue then
+				make type "Memo"
+				set memoCue to last item of (selected as list)
+				set q name of memoCue to ("SHOW AT " & showTimeText & ¬
+					"  -  delete this cue list after the show")
+				set q color of memoCue to kFinalColour
+				try
+					move memoCue to end of theList
+				end try
+			end if
+		end tell
+	end tell
+
+	return listName
+end buildPreShow
