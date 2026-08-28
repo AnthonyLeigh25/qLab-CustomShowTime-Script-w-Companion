@@ -273,6 +273,8 @@ on buildPreShow(showTimeText)
 	set triggerFailures to {}
 	set crossesMidnight to {}
 	set reportLines to {}
+	set cleanupMade to false
+	set cleanupError to ""
 
 	warnAboutMissingFiles(theSchedule)
 
@@ -366,6 +368,58 @@ on buildPreShow(showTimeText)
 				set end of reportLines to ("  " & fireText & "   T-" & ¬
 					minsBefore & tab & baseName)
 			end repeat
+
+			-- the cue that tidies up after itself, last in the list. wrapped in
+			-- a try because script cues need a licence, and a free tier qlab
+			-- should still get its announcements, just with a list to delete by
+			-- hand afterwards.
+			if kAddCleanupCue then
+				try
+					set cleanupSecs to my wrapSeconds(showSecs - ¬
+						(kCleanupOffsetMinutes * 60))
+					set cleanupText to my hhmmssFromSeconds(cleanupSecs)
+
+					make type "Script"
+					set cleanupCue to last item of (selected as list)
+
+					set script source of cleanupCue to ¬
+						my cleanupScriptSource(listName)
+					set q name of cleanupCue to (cleanupText & ¬
+						"  -  CLEAN UP: " & kCleanupAction & " this cue list")
+					set q color of cleanupCue to kFinalColour
+					set notes of cleanupCue to ("Runs at " & cleanupText & ¬
+						" and " & kCleanupAction & "s the cue list \"" & ¬
+						listName & "\", so these wall clock triggers don't " & ¬
+						"fire again tomorrow." & return & ¬
+						"Reschedule via the builder script to keep this in step.")
+					set armed of cleanupCue to true
+
+					set wall clock hours of cleanupCue to (cleanupSecs div 3600)
+					set wall clock minutes of cleanupCue to ¬
+						((cleanupSecs mod 3600) div 60)
+					set wall clock seconds of cleanupCue to (cleanupSecs mod 60)
+					if not my enableWallClock(cleanupCue) then ¬
+						set end of triggerFailures to cleanupText
+
+					if kNumberPrefix is not "" then
+						try
+							set q number of cleanupCue to ¬
+								(kNumberPrefix & "-END")
+						on error
+							set end of numberClashes to (kNumberPrefix & "-END")
+						end try
+					end if
+
+					move cleanupCue to end of theList
+					set cleanupMade to true
+					set end of reportLines to ("  " & cleanupText & ¬
+						"   T-" & kCleanupOffsetMinutes & tab & ¬
+						"CLEAN UP (" & kCleanupAction & " cue list)")
+				on error errMsg
+					-- hang on to why, the summary makes a point of it
+					set cleanupError to errMsg
+				end try
+			end if
 		end tell
 	end tell
 
