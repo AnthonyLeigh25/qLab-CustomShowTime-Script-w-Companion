@@ -945,3 +945,65 @@ on trimText(t)
 	end repeat
 	return t
 end trimText
+
+
+--------------------------------------------------------------------------------
+-- companion and stream deck setup
+--
+-- IN QLAB, a permanent cue list called "PRE-SHOW CONTROL" holding three cues.
+-- these live in the show file for good. they are not part of the temporary list
+-- and they are the only pre-show cues present at the start of a day.
+--
+--   PSTIME   memo cue.   name: "SHOW TIME - not set"
+--                        companion overwrites this name with the chosen time.
+--                        disarm it, it is a label rather than something to play.
+--   PSBUILD  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
+--                        tell b to buildFromQLabCue()
+--   PSCLEAR  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
+--                        tell b to clearPreShow()
+--
+-- export this file via file > export > file format: script to that .scpt path,
+-- so qlab, the login item and script editor all share one copy and there is no
+-- second version to keep in step.
+--
+-- ON THE MAC, a login item that runs purgeOnLaunch() every morning. save this
+-- as an applet (file > export > file format: application) holding just these
+-- two lines, then add it to login items:
+--
+--   set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
+--   tell b to purgeOnLaunch()
+--
+-- this is required rather than belt and braces. qlab autosaves the workspace on
+-- a timer, so a list built yesterday is on disk and would come back armed today.
+--
+-- IN COMPANION, three pages using the qlabfb connection plus two custom
+-- variables, showHour and showMinute. turn off persist value on both, so a
+-- companion restart leaves them blank and nobody can build yesterday's time.
+--
+--   page 10  PRE-SHOW
+--     "NEW SHOW"      -> internal: set surface page = 11
+--                       button text: NEW SHOW\n$(custom:showHour):$(custom:showMinute)
+--     "BUILD"         -> qlabfb: custom osc /cue/PSTIME/name
+--                          string argument: $(custom:showHour):$(custom:showMinute)
+--                    -> wait 250 ms
+--                    -> qlabfb: custom osc /cue/PSBUILD/start
+--     "CANCEL"        -> qlabfb: custom osc /cue/PSCLEAR/start
+--
+--   page 11  SELECT HOUR    24 buttons, each:
+--                       internal: custom variable set value, showHour = "18"
+--                       internal: set surface page = 12
+--
+--   page 12  SELECT MINUTE  12 buttons at 5 minute steps, each:
+--                       internal: custom variable set value, showMinute = "30"
+--                       internal: set surface page = 10
+--
+-- store the hour and minute already padded to two characters ("07", "05") in
+-- the button actions. that keeps "19:30" well formed without any expression
+-- maths, and secondsOfDayFromText above will take it happily.
+--
+-- the two osc messages on BUILD have to arrive in order, since the name is set
+-- and then the build cue reads it back. that is what the 250 ms wait is for.
+--
+-- nothing is built until BUILD is pressed, and BUILD refuses unless a readable
+-- time is sitting in PSTIME's name. there is no default show time anywhere.
+--------------------------------------------------------------------------------
