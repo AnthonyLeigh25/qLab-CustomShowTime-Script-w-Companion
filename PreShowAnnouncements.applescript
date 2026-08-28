@@ -778,3 +778,29 @@ on askForShowTime(defaultText)
 		end try
 	end repeat
 end askForShowTime
+
+
+-- say up front which audio files are not where the configuration claims. this
+-- is the last chance to stop before a list of silent cues gets built, and it is
+-- the sort of thing that only shows up in the house otherwise.
+on warnAboutMissingFiles(theSchedule)
+	if kSilent then return -- never block a stream deck press with a dialog
+	set missingFiles to {}
+	repeat with theRow in theSchedule
+		set thePath to item 3 of theRow
+		if not fileExists(thePath) then
+			-- the same file appears on several rows, so only mention it once
+			if missingFiles does not contain thePath then ¬
+				set end of missingFiles to thePath
+		end if
+	end repeat
+	if (count of missingFiles) is 0 then return
+	set msg to "These audio files were not found:" & return & return
+	repeat with p in missingFiles
+		set msg to msg & "  - " & p & return
+	end repeat
+	set msg to msg & return & "The cues will still be built, but those file " & ¬
+		"targets will be left empty for you to fill in."
+	display dialog msg buttons {"Cancel", "Build Anyway"} ¬
+		default button "Build Anyway" with icon caution
+end warnAboutMissingFiles
