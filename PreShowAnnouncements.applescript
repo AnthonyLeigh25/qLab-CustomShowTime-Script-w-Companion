@@ -567,3 +567,60 @@ on rescheduleList(theList, newTimeText, theSchedule)
 	end if
 	return summary
 end rescheduleList
+
+
+--------------------------------------------------------------------------------
+-- qlab helpers
+--------------------------------------------------------------------------------
+
+-- the first cue list whose name starts with kListPrefix, or missing value.
+-- matching on the prefix rather than the full name means a list built for any
+-- show time is found, which is the point: callers want to know whether one is
+-- there at all, not which one.
+on findExistingList()
+	tell application id "com.figure53.QLab.5"
+		if (count of workspaces) is 0 then return missing value
+		tell front workspace
+			repeat with L in (every cue list)
+				try
+					if (q name of L) starts with kListPrefix then return L
+				end try
+			end repeat
+		end tell
+	end tell
+	return missing value
+end findExistingList
+
+-- find a cue anywhere in the workspace by its q number. searches every cue list
+-- and one level into group cues, which covers a control cue tucked inside a
+-- group without recursing through an entire show file on every call. the cues
+-- this looks for are ones the setup instructions put at the top level of their
+-- own list anyway.
+on findCueByNumber(theNumber)
+	if theNumber is "" then return missing value
+	tell application id "com.figure53.QLab.5"
+		if (count of workspaces) is 0 then return missing value
+		tell front workspace
+			repeat with L in (every cue list)
+				try
+					repeat with C in (every cue of L)
+						try
+							if (q number of C) is theNumber then return C
+						end try
+						try
+							if (q type of C) is "Group" then
+								repeat with C2 in (every cue of C)
+									try
+										if (q number of C2) is theNumber then ¬
+											return C2
+									end try
+								end repeat
+							end if
+						end try
+					end repeat
+				end try
+			end repeat
+		end tell
+	end tell
+	return missing value
+end findCueByNumber
