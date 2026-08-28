@@ -719,3 +719,25 @@ on cleanupScriptSource(listName)
 		"    end tell" & LF & ¬
 		"end tell"
 end cleanupScriptSource
+
+
+-- tick the wall clock trigger checkbox. returns true if it took.
+--
+-- tries the enumerated constant first and the string second because the
+-- accepted form has moved around between qlab versions, and the whole system
+-- is worthless if this one property does not get set. reports failure rather
+-- than raising, so a build finishes and the summary can name the cues that need
+-- the box ticking by hand.
+on enableWallClock(theCue)
+	tell application id "com.figure53.QLab.5"
+		try
+			set wall clock trigger of theCue to enabled
+			return true
+		end try
+		try
+			set wall clock trigger of theCue to "enabled"
+			return true
+		end try
+	end tell
+	return false
+end enableWallClock
