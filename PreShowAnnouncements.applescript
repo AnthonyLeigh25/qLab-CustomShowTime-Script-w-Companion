@@ -624,3 +624,56 @@ on findCueByNumber(theNumber)
 	end tell
 	return missing value
 end findCueByNumber
+
+
+-- write the outcome of a build into the control cue's notes, so the booth can
+-- see what the last stream deck press actually did
+on reportToControlCue(showTimeText, builtCount)
+	noteOnControlCue("Last build: " & builtCount & " cues for a " & ¬
+		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & ¬
+		showTimeText)
+end reportToControlCue
+
+on noteOnControlCue(theText)
+	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
+	if ctrlCue is missing value then return
+	tell application id "com.figure53.QLab.5"
+		try
+			-- a note that will not write is not worth failing a build over
+			set notes of ctrlCue to theText
+		end try
+	end tell
+end noteOnControlCue
+
+-- wipe the stored show time. this is the whole point of cancel: leaving a time
+-- behind would let tomorrow's operator press build and get tonight's schedule
+-- without ever choosing anything.
+on resetControlCue()
+	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
+	if ctrlCue is missing value then return
+	tell application id "com.figure53.QLab.5"
+		try
+			set q name of ctrlCue to kNoTimeText
+			set notes of ctrlCue to ("No show time set. Choose one on the " & ¬
+				"Stream Deck, then press BUILD.")
+		end try
+	end tell
+end resetControlCue
+
+on nameOfList(theList)
+	tell application id "com.figure53.QLab.5"
+		try
+			return q name of theList
+		on error
+			return ""
+		end try
+	end tell
+end nameOfList
+
+on deleteList(theList)
+	tell application id "com.figure53.QLab.5"
+		try
+			delete theList
+		end try
+	end tell
+end deleteList
