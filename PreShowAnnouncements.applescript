@@ -220,3 +220,33 @@ on workspaceIsOpen()
 		return false
 	end try
 end workspaceIsOpen
+
+
+-- read the show time out of the control cue's name, the cue whose q number is
+-- kShowTimeCueNumber. companion writes it there over osc with
+--     /cue/PSTIME/name 19:30
+-- raises if nothing readable is sitting there. no default, deliberately.
+on showTimeFromControlCue()
+	if kShowTimeCueNumber is "" then ¬
+		error "kShowTimeCueNumber is empty, so there is no show time to read."
+
+	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
+	if ctrlCue is missing value then ¬
+		error ("No cue numbered " & kShowTimeCueNumber & " was found. The " & ¬
+			"pre-show control cue is missing from this workspace.")
+
+	tell application id "com.figure53.QLab.5"
+		set rawName to q name of ctrlCue
+	end tell
+
+	set s to firstTimeTokenSeconds(rawName)
+	if s is missing value then
+		-- leave the reason where the booth will actually see it, since a stream
+		-- deck press gives no other feedback
+		my noteOnControlCue("BUILD REFUSED - no show time set. Choose a time " & ¬
+			"on the Stream Deck first.")
+		error ("No show time has been set. Cue " & kShowTimeCueNumber & ¬
+			" reads \"" & rawName & "\", which contains no time. Nothing built.")
+	end if
+	return hhmmFromSeconds(s)
+end showTimeFromControlCue
