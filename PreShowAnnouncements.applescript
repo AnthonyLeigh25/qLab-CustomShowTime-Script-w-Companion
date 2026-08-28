@@ -135,3 +135,51 @@ on run
 
 	return buildPreShow(askForShowTime(""))
 end run
+
+
+--------------------------------------------------------------------------------
+-- headless entry points, for driving from companion or a stream deck.
+--
+-- save this as a compiled script (file > export > script) somewhere permanent,
+-- then have a qlab script cue load it and call one of these, along the lines of
+--
+--     set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
+--     tell b to buildFromQLabCue()
+--
+-- the companion notes at the foot of this file spell that out properly. none of
+-- these paths show a dialog, so a button press can never block mid-show.
+--------------------------------------------------------------------------------
+
+-- read the show time out of the control cue and build against it. any existing
+-- temporary list is binned first, so one press always lands on a known state
+-- rather than on whatever happened to be there.
+on buildFromQLabCue()
+	set kSilent to true
+	-- no fallback here on purpose. an unset time raises, qlab shows the error
+	-- against the script cue, and nothing gets built.
+	set showTimeText to showTimeFromControlCue()
+	repeat
+		set existingList to findExistingList()
+		if existingList is missing value then exit repeat
+		deleteList(existingList)
+	end repeat
+	return buildPreShow(showTimeText)
+end buildFromQLabCue
+
+-- bin the temporary list and forget the stored show time. this is what a
+-- "cancel pre-show" button should call.
+on clearPreShow()
+	set kSilent to true
+	set n to 0
+	repeat
+		set existingList to findExistingList()
+		if existingList is missing value then exit repeat
+		deleteList(existingList)
+		set n to n + 1
+		-- belt and braces. if a delete ever silently fails this would otherwise
+		-- spin forever with qlab wedged behind it.
+		if n > 20 then exit repeat
+	end repeat
+	resetControlCue()
+	return ("cleared " & n & " list(s)")
+end clearPreShow
