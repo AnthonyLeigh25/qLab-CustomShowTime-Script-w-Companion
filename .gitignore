@@ -1,0 +1,15 @@
+# script editor exports the compiled copy alongside the source, and that
+# copy is machine specific
+*.scpt
+*.scptd
+*.app/
+
+# qlab workspaces and their autosaves are far too big and far too local
+# to belong in here
+*.qlab5
+*.qlab5/
+
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
