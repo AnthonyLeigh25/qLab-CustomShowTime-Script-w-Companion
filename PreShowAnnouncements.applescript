@@ -741,3 +741,40 @@ on enableWallClock(theCue)
 	end tell
 	return false
 end enableWallClock
+
+
+--------------------------------------------------------------------------------
+-- dialogs
+--------------------------------------------------------------------------------
+
+on chooseExistingAction(existingTime)
+	set msg to "A pre-show cue list already exists"
+	if existingTime is not "" then set msg to msg & ", set for " & existingTime
+	set msg to msg & "." & return & return & "Reschedule keeps the cues and " & ¬
+		"just changes their trigger times. Rebuild deletes and recreates them."
+	display dialog msg buttons {"Delete It", "Rebuild", "Reschedule"} ¬
+		default button "Reschedule" with title "Pre-Show Announcements"
+	set b to button returned of the result
+	if b is "Delete It" then return "DELETE"
+	if b is "Rebuild" then return "REBUILD"
+	return "RESCHEDULE"
+end chooseExistingAction
+
+on askForShowTime(defaultText)
+	repeat
+		set theReply to text returned of (display dialog ¬
+			"Show time? (24-hour, e.g. 19:30)" default answer defaultText ¬
+			with title "Pre-Show Announcements")
+		try
+			set s to secondsOfDayFromText(theReply)
+			return hhmmFromSeconds(s)
+		on error
+			-- hand the rejected text back as the default so a fat fingered
+			-- 199:30 is corrected rather than typed out again from scratch
+			display dialog "Couldn't read \"" & theReply & ¬
+				"\". Please use HH:MM, e.g. 19:30." buttons {"Try Again"} ¬
+				default button 1 with icon caution
+			set defaultText to theReply
+		end try
+	end repeat
+end askForShowTime
