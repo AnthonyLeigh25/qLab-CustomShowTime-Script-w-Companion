@@ -804,3 +804,111 @@ on warnAboutMissingFiles(theSchedule)
 	display dialog msg buttons {"Cancel", "Build Anyway"} ¬
 		default button "Build Anyway" with icon caution
 end warnAboutMissingFiles
+
+
+--------------------------------------------------------------------------------
+-- time and text helpers
+--------------------------------------------------------------------------------
+
+-- "19:30", "7:30 pm", "1930" all come out as seconds since midnight.
+--
+-- forgiving on the way in because the time arrives from three different places,
+-- a dialog, an osc message and a cue name somebody may have typed by hand, and
+-- being fussy about the format would just mean refusing to build over a stray
+-- space. strict on the way out: the range check is what stops "25:70" becoming
+-- a cue that never fires.
+on secondsOfDayFromText(theText)
+	set theText to trimText(theText as text)
+	set isPM to (theText contains "pm" or theText contains "PM")
+	set isAM to (theText contains "am" or theText contains "AM")
+
+	-- strip to digits and separators first, so any decoration around the time
+	-- falls away rather than having to be anticipated
+	set cleaned to ""
+	repeat with c in (characters of theText)
+		if c is in "0123456789:." then set cleaned to cleaned & c
+	end repeat
+	if cleaned is "" then error "no digits"
+
+	if cleaned contains ":" or cleaned contains "." then
+		set AppleScript's text item delimiters to {":", "."}
+		set parts to text items of cleaned
+		set AppleScript's text item delimiters to {""}
+		set hh to (item 1 of parts) as integer
+		set mm to 0
+		if (count of parts) > 1 then set mm to (item 2 of parts) as integer
+	else if (length of cleaned) ≤ 2 then
+		set hh to cleaned as integer
+		set mm to 0
+	else
+		-- bare "1930"
+		set hh to (text 1 thru -3 of cleaned) as integer
+		set mm to (text -2 thru -1 of cleaned) as integer
+	end if
+
+	if isPM and hh < 12 then set hh to hh + 12
+	if isAM and hh is 12 then set hh to 0
+	if hh > 23 or hh < 0 or mm > 59 or mm < 0 then error "time out of range"
+	return hh * 3600 + mm * 60
+end secondsOfDayFromText
+
+-- find the first thing that looks like a time in a longer string, or missing
+-- value. this is what lets the show time sit inside a cue name such as
+-- "SHOW TIME 19:30 (matinee)" rather than having to be the whole name.
+--
+-- requires a colon, so a stray "1930" in some other part of the name cannot be
+-- mistaken for the time. resets the text item delimiters on the way out of the
+-- error path as well, since they are global and leaving them changed would
+-- quietly break the next handler that splits a string.
+on firstTimeTokenSeconds(theText)
+	try
+		set AppleScript's text item delimiters to {" ", tab, return, linefeed}
+		set parts to text items of (theText as text)
+		set AppleScript's text item delimiters to {""}
+		repeat with p in parts
+			if (p as text) contains ":" then
+				try
+					return secondsOfDayFromText(p as text)
+				end try
+			end if
+		end repeat
+	on error
+		set AppleScript's text item delimiters to {""}
+	end try
+	return missing value
+end firstTimeTokenSeconds
+
+-- pull "19:30" back out of a cue list name like "Temp-PreShow 19:30"
+on timeFromListName(theName)
+	set s to firstTimeTokenSeconds(theName)
+	if s is missing value then return ""
+	return hhmmFromSeconds(s)
+end timeFromListName
+
+-- keep a time of day inside the day. a call earlier than the show time by more
+-- than the show time itself belongs to yesterday evening, which is exactly what
+-- a wall clock trigger wants.
+on wrapSeconds(s)
+	set s to s as integer
+	repeat while s < 0
+		set s to s + 86400
+	end repeat
+	return s mod 86400
+end wrapSeconds
+
+on hhmmFromSeconds(s)
+	set s to wrapSeconds(s)
+	return pad2(s div 3600) & ":" & pad2((s mod 3600) div 60)
+end hhmmFromSeconds
+
+on hhmmssFromSeconds(s)
+	set s to wrapSeconds(s)
+	return pad2(s div 3600) & ":" & pad2((s mod 3600) div 60) & ":" & ¬
+		pad2(s mod 60)
+end hhmmssFromSeconds
+
+on pad2(n)
+	set n to n as integer
+	if n < 10 then return "0" & (n as text)
+	return n as text
+end pad2
