@@ -183,3 +183,40 @@ on clearPreShow()
 	resetControlCue()
 	return ("cleared " & n & " list(s)")
 end clearPreShow
+
+
+-- the morning purge. run this from a login item every day, a minute or so after
+-- the mac comes up and qlab has opened the workspace.
+--
+-- this is not belt and braces, it is load bearing. qlab autosaves the workspace
+-- on a timer, so a temporary list built yesterday is on disk. without this, a
+-- cancelled show, or any evening where qlab was quit before the cleanup cue
+-- ran, leaves yesterday's list armed and it announces again tonight at
+-- yesterday's times, to whoever happens to be in the building.
+on purgeOnLaunch()
+	set kSilent to true
+	-- login items can start before qlab has a workspace open, so wait rather
+	-- than assume, and give up eventually instead of hanging about all day.
+	set waited to 0
+	repeat
+		if workspaceIsOpen() then exit repeat
+		delay 5
+		set waited to waited + 5
+		if waited ≥ 300 then return "gave up waiting for a QLab workspace"
+	end repeat
+	delay 5 -- let the workspace settle before touching anything in it
+	return ("launch purge: " & clearPreShow())
+end purgeOnLaunch
+
+on workspaceIsOpen()
+	try
+		tell application id "com.figure53.QLab.5"
+			if not running then return false
+			return (count of workspaces) > 0
+		end tell
+	on error
+		-- qlab mid-launch will happily refuse to answer, and that is a not yet
+		-- rather than a no
+		return false
+	end try
+end workspaceIsOpen
