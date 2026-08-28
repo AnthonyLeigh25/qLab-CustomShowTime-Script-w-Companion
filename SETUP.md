@@ -90,3 +90,46 @@ Leave **Run in separate process** ticked on both Script cues, which is QLab's de
 Now test by hand: select `PSTIME`, rename it to `SHOW TIME 19:30`, then GO `PSBUILD`. You should get the temporary list. GO `PSCLEAR` and it should vanish, with `PSTIME` reset to `SHOW TIME - not set`.
 
 > **Script cues need a QLab licence.** They do not run in the free tier. If `PSBUILD` does nothing, check your licence first.
+
+## Part 6 - The launch purge (required)
+
+**Do not skip this.** QLab autosaves the workspace on a timer, so a temporary list built today is written to disk. If a show is cancelled, or QLab is quit before the cleanup cue runs, tomorrow's fresh launch will have yesterday's list, **armed**, and it will announce again at yesterday's times. The daily restart does not clean it up. This does.
+
+1. In Script Editor, open a new document and paste:
+   ```applescript
+   set b to load script (POSIX file "/Users/booth/Scripts/PreShow.scpt")
+   tell b to purgeOnLaunch()
+   ```
+2. **File > Export** then File Format: **Application**, saved as `/Users/booth/Scripts/PreShow Purge.app`
+3. **Run it once manually now.** macOS will ask whether it may control QLab, click OK. This one time approval cannot be granted on a headless restart, so it has to be done by hand here.
+4. **System Settings > General > Login Items** then **+** and add `PreShow Purge.app`.
+
+`purgeOnLaunch()` waits up to five minutes for QLab to finish opening a workspace, so it does not matter whether it runs before or after QLab.
+
+## Part 7 - Make the daily restart actually work
+
+Your Mac restarts and relaunches QLab daily. Four things must be true for that to be reliable:
+
+1. **The Mac logs in automatically.** *System Settings > Users & Groups > Automatically log in as.*
+   **FileVault blocks this.** If FileVault is on, the Mac sits at the disk unlock screen and nothing launches. Turn FileVault off on a booth machine, or accept that someone unlocks it each morning.
+2. **The workspace opens automatically.** QLab's launch preference has no reopen last workspace option, so add the workspace *document* to Login Items alongside the purge app: *Login Items > + > select your `.qlab5` file.*
+3. **The Mac never sleeps.** Wall clock triggers do not fire while asleep. In Terminal:
+   ```bash
+   sudo pmset -a sleep 0 disksleep 0 displaysleep 30
+   ```
+4. **The restart itself is scheduled.** If you are not already doing this via an MDM, then:
+   ```bash
+   sudo pmset repeat restart MTWRFSU 04:00:00
+   ```
+
+Also confirm in QLab: *Workspace Settings > OSC* has **OSC controls enabled**, and note the passcode if you have set one.
+
+## Part 8 - Automation permissions
+
+The commonest cause of "it worked yesterday and not today". Each of these needs a one time approval, granted by clicking a dialog:
+
+- Script Editor controlling QLab (Part 3)
+- QLab controlling QLab, meaning the Script cues (Part 5)
+- PreShow Purge.app controlling QLab (Part 6)
+
+Check them in *System Settings > Privacy & Security > Automation*. All three should list QLab underneath and be switched on. **Renaming or moving `PreShow.scpt` or the purge app resets its permission**, so re-run it by hand after any move.
