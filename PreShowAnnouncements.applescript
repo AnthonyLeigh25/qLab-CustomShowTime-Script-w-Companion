@@ -912,3 +912,36 @@ on pad2(n)
 	if n < 10 then return "0" & (n as text)
 	return n as text
 end pad2
+
+
+-- coercing to an alias is the cheap way to ask whether a file is really there,
+-- since it fails for a path that does not resolve
+on fileExists(posixPath)
+	try
+		set f to (POSIX file posixPath) as alias
+		return true
+	on error
+		return false
+	end try
+end fileExists
+
+on joinList(theList, sep)
+	set out to ""
+	repeat with i from 1 to count of theList
+		set out to out & (item i of theList)
+		if i < (count of theList) then set out to out & sep
+	end repeat
+	return out
+end joinList
+
+-- trims spaces only, which is all the show time inputs ever pick up
+on trimText(t)
+	set t to t as text
+	repeat while t begins with " "
+		set t to text 2 thru -1 of t
+	end repeat
+	repeat while t ends with " "
+		set t to text 1 thru -2 of t
+	end repeat
+	return t
+end trimText
