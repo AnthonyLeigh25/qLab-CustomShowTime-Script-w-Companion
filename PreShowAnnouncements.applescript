@@ -423,5 +423,57 @@ on buildPreShow(showTimeText)
 		end tell
 	end tell
 
-	return listName
+	-- report ------------------------------------------------------------------
+	set summary to "Created cue list \"" & listName & "\" with " & builtCount & ¬
+		" self-triggering announcement cues." & return & return
+	repeat with L in reportLines
+		set summary to summary & L & return
+	end repeat
+	set summary to summary & return & ¬
+		"No GO required - each cue fires itself at the time shown." & return & ¬
+		"Leave the workspace open and stop the Mac from sleeping." & return
+
+	if kAddCleanupCue then
+		if cleanupMade then
+			set summary to summary & return & "The list " & kCleanupAction & ¬
+				"s itself at show time, so nothing is left armed for " & ¬
+				"tomorrow." & return
+		else
+			set summary to summary & return & "WARNING: the cleanup cue could " & ¬
+				"NOT be created"
+			if cleanupError is not "" then ¬
+				set summary to summary & " (" & cleanupError & ")"
+			set summary to summary & "." & return & "Script cues need a QLab " & ¬
+				"licence. Delete this cue list by hand after the show, or " & ¬
+				"these triggers will fire again tomorrow." & return
+		end if
+	end if
+
+	if (count of crossesMidnight) > 0 then
+		set summary to summary & return & "NOTE: these calls fall before " & ¬
+			"midnight of the previous day: " & my joinList(crossesMidnight, " ") & ¬
+			return
+	end if
+	if (count of triggerFailures) > 0 then
+		set summary to summary & return & "WARNING: could not tick the wall " & ¬
+			"clock checkbox on: " & my joinList(triggerFailures, " ") & ¬
+			return & "Enable it by hand in the Triggers tab." & return
+	end if
+	if (count of numberClashes) > 0 then
+		set summary to summary & return & "Cue numbers already in use, left " & ¬
+			"blank: " & my joinList(numberClashes, " ") & return
+	end if
+	set summary to summary & return & ¬
+		"Re-run this script to reschedule or delete the list."
+
+	-- write the outcome into the control cue whether or not anyone is looking
+	-- at a dialog, since on a stream deck build this is the only feedback there
+	-- is, and it can be read back over osc
+	reportToControlCue(showTimeText, builtCount)
+
+	if not kSilent then
+		display dialog summary buttons {"OK"} default button 1 with title ¬
+			"Pre-Show Announcements"
+	end if
+	return summary
 end buildPreShow
