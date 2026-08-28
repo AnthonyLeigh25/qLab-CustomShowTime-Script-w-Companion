@@ -264,6 +264,15 @@ on buildPreShow(showTimeText)
 	set showTimeText to hhmmFromSeconds(showSecs)
 	set listName to kListPrefix & " " & showTimeText
 	set builtCount to 0
+	set cueIndex to 0
+
+	-- everything that went sideways is collected rather than raised, so one
+	-- missing file or one taken cue number cannot lose the other seven cues.
+	-- stage 10 turns these into the summary the operator reads.
+	set numberClashes to {}
+	set triggerFailures to {}
+	set crossesMidnight to {}
+	set reportLines to {}
 
 	warnAboutMissingFiles(theSchedule)
 
@@ -297,6 +306,66 @@ on buildPreShow(showTimeText)
 					move memoCue to end of theList
 				end try
 			end if
+
+			repeat with theRow in theSchedule
+				set minsBefore to item 1 of theRow
+				set baseName to item 2 of theRow
+				set thePath to item 3 of theRow
+				set theColour to item 4 of theRow
+
+				-- an early call for a lunchtime show lands yesterday evening.
+				-- the trigger is fine with that, it is a time of day and not a
+				-- date, but the operator should be told.
+				set fireSecs to my wrapSeconds(showSecs - (minsBefore * 60))
+				if fireSecs > showSecs then ¬
+					set end of crossesMidnight to ("T-" & minsBefore)
+				set fireText to my hhmmssFromSeconds(fireSecs)
+				set cueIndex to cueIndex + 1
+
+				make type "Audio"
+				set theCue to last item of (selected as list)
+
+				-- lead with the fire time so the list reads as a running order
+				set q name of theCue to (fireText & "  -  " & baseName & ¬
+					"  (T-" & minsBefore & ")")
+				set q color of theCue to theColour
+				set notes of theCue to ("Wall clock trigger at " & fireText & ¬
+					" - " & minsBefore & " minutes before a " & showTimeText & ¬
+					" show." & return & "File: " & thePath & return & ¬
+					"Fires every day while this workspace is open. Delete " & ¬
+					"this cue list after the show.")
+				set armed of theCue to true
+
+				-- a missing file leaves an empty audio cue rather than killing
+				-- the build. the path is in the notes above either way, and the
+				-- summary says which ones are hollow.
+				if my fileExists(thePath) then
+					set file target of theCue to POSIX file thePath
+				end if
+
+				set wall clock hours of theCue to (fireSecs div 3600)
+				set wall clock minutes of theCue to ((fireSecs mod 3600) div 60)
+				set wall clock seconds of theCue to (fireSecs mod 60)
+				if not my enableWallClock(theCue) then ¬
+					set end of triggerFailures to fireText
+
+				-- numbers are a convenience for osc, not load bearing, so a
+				-- clash with the operator's own numbering is noted and skipped
+				if kNumberPrefix is not "" then
+					set wantedNumber to kNumberPrefix & cueIndex
+					try
+						set q number of theCue to wantedNumber
+					on error
+						set end of numberClashes to wantedNumber
+					end try
+				end if
+
+				move theCue to end of theList
+
+				set builtCount to builtCount + 1
+				set end of reportLines to ("  " & fireText & "   T-" & ¬
+					minsBefore & tab & baseName)
+			end repeat
 		end tell
 	end tell
 
