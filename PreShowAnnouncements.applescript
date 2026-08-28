@@ -100,3 +100,38 @@ on announcementSchedule()
 		{3, "Final Call", kFinalCallFile, kFinalColour}, ¬
 		{2, "Final Call", kFinalCallFile, kFinalColour}}
 end announcementSchedule
+
+
+--------------------------------------------------------------------------------
+-- main
+--------------------------------------------------------------------------------
+
+-- interactive entry point. running the script normally lands here.
+on run
+	-- reset in case a headless run left this true, since properties persist
+	-- between runs of a compiled script.
+	set kSilent to false
+	set theSchedule to announcementSchedule()
+
+	-- deal with any list left over from a previous build before making another,
+	-- otherwise you end up with two sets of triggers fighting each other.
+	set existingList to findExistingList()
+	if existingList is not missing value then
+		set existingTime to timeFromListName(nameOfList(existingList))
+		set whatNow to chooseExistingAction(existingTime)
+		if whatNow is "DELETE" then
+			deleteList(existingList)
+			display dialog "Deleted the old pre-show cue list." buttons {"OK"} ¬
+				default button 1 with title "Pre-Show Announcements"
+			return "deleted"
+		else if whatNow is "RESCHEDULE" then
+			set newTime to askForShowTime(existingTime)
+			return rescheduleList(existingList, newTime, theSchedule)
+		else
+			-- rebuild, so bin the old one and fall through to the build below
+			deleteList(existingList)
+		end if
+	end if
+
+	return buildPreShow(askForShowTime(""))
+end run
