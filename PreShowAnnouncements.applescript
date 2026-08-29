@@ -16,6 +16,7 @@
 --   - QLab's days-of-week setting is not scriptable, so these triggers
 --     are live every day and so the list ends with a script cue that deletes it
 --     at show time. If that cue cannot run, delete the list by hand.
+-- Note to self, don't do applescript ever again god I hate myself.
 --------------------------------------------------------------------------------
 
 
@@ -23,25 +24,20 @@
 
 -- Audio files locations, and the level each one plays at.
 --
--- Levels are {master, left, right} in dB, the same numbers QLab shows in a
--- cue's Levels tab. 0 is unity, +12 is the maximum, and -120 is silence,
--- which QLab displays as -INF. Every value is set on the cue, so what the
--- cue plays at always matches what is written here.
+-- Levels are {master, left, right} in dB, range is -120(-INF) to +12.
 --
 -- Left and right are the crosspoints for a stereo file on default routing.
--- A mono file has no right channel, so that one will be reported as failed
--- in the summary and can be ignored. Check a built cue's Levels tab once.
-property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
-property kWelcomeLevel : {0, 0, 0}
+property kWelcomeFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-concert FOH areas no mask .wav"
+property kWelcomeLevel : {0, 0, -10}
 
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kTenMinLevel : {0, 0, 0}
 
-property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
-property kFiveMinLevel : {0, 0, 0}
+property kFiveMinFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-Event 5 Mins Photography Permitted.wav"
+property kFiveMinLevel : {0, 0, -11}
 
-property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
-property kFinalCallLevel : {0, 0, 0}
+property kFinalCallFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-EVENT final call.wav"
+property kFinalCallLevel : {0, 0, -17}
 
 -- There is no default show time. The time is either typed into
 -- the dialog or sent from Companion. A missing or unreadable one stops the
@@ -95,13 +91,15 @@ property kCleanupAction : "delete"
 on announcementSchedule()
 	return {¬
 		{60, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
+		{50, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
 		{40, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
+		{30, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
 		{20, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{15, "10 Minute Call", kTenMinFile, kCallColour, kTenMinLevel}, ¬
 		{10, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel}, ¬
+		{8, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel}, ¬
 		{5, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
 		{3, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
-		{2, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}}
+		{1, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}}
 end announcementSchedule
 
 -- =========================== END CONFIGURATION ===============================
@@ -149,12 +147,10 @@ end run
 -- The full wiring is at the foot of this file.
 --------------------------------------------------------------------------------
 
--- Read the show time from the control cue and build. Any old list is deleted
--- first, so one press always gives the same result.
+-- Read the show time from the control cue and build. Any old list is deleted first.
 on buildFromQLabCue()
 	set kSilent to true
-	-- No fallback. An unset time raises an error, QLab shows it on the
-	-- script cue, and nothing is built.
+	-- No fallback. An unset time raises an error, QLab shows it on the script cue, and nothing is built.
 	set showTimeText to showTimeFromControlCue()
 	repeat
 		set existingList to findExistingList()
@@ -164,8 +160,7 @@ on buildFromQLabCue()
 	return buildPreShow(showTimeText)
 end buildFromQLabCue
 
--- Delete the list and clear the stored show time. Wire this to a cancel
--- button.
+-- Delete the list and clear the stored show time. Wire this to a cancel button.
 on clearPreShow()
 	set kSilent to true
 	set n to 0
@@ -174,7 +169,6 @@ on clearPreShow()
 		if existingList is missing value then exit repeat
 		deleteList(existingList)
 		set n to n + 1
-		-- A delete that quietly fails would loop forever, so stop after twenty.
 		if n > 20 then exit repeat
 	end repeat
 	resetControlCue()
@@ -183,11 +177,6 @@ end clearPreShow
 
 
 -- The morning purge. Run this from a login item every day.
---
--- This one is required. QLab autosaves, so a list built yesterday is on
--- disk. If the show was cancelled, or QLab was quit before the cleanup cue
--- ran, that list comes back armed and announces again today at yesterday's
--- times.
 on purgeOnLaunch()
 	set kSilent to true
 	-- A login item can start before QLab is ready, so wait for the workspace.
@@ -247,7 +236,7 @@ end showTimeFromControlCue
 
 
 --------------------------------------------------------------------------------
--- THE BUILD ITSELF
+-- THE BUILD ITSELF (I hate my life)
 --------------------------------------------------------------------------------
 
 on buildPreShow(showTimeText)
@@ -319,7 +308,7 @@ on buildPreShow(showTimeText)
 				make type "Audio"
 				set theCue to last item of (selected as list)
 
-				-- Leads with the fire time so the list reads as a running order
+				-- Leads with the fire time so the list reads as a running order, hopefully.
 				set q name of theCue to (fireText & "  -  " & baseName & ¬
 					"  (T-" & minsBefore & ")")
 				set q color of theCue to theColour
@@ -331,7 +320,7 @@ on buildPreShow(showTimeText)
 				set armed of theCue to true
 
 				-- A missing file leaves an empty cue rather than stopping the
-				-- build. The path is in the notes, and the summary lists them.
+				-- build. The path is in the notes and the summary lists them.
 				if my fileExists(thePath) then
 					set file target of theCue to POSIX file thePath
 					-- Levels go on after the file target. Assigning a target
@@ -364,7 +353,7 @@ on buildPreShow(showTimeText)
 					minsBefore & tab & baseName)
 			end repeat
 
-			-- The cleanup cue, last in the list.
+			-- The cleanup cue.
 			if kAddCleanupCue then
 				try
 					set cleanupSecs to my wrapSeconds(showSecs - ¬
@@ -465,7 +454,7 @@ on buildPreShow(showTimeText)
 		"Re-run this script to reschedule or delete the list."
 
 	-- Always write the result to the control cue. A Stream Deck build shows no
-	-- dialog, so this is the only feedback, and OSC can read it back.
+	-- dialog, so this is the only feedback and OSC should be able to read it back.
 	reportToControlCue(showTimeText, builtCount)
 
 	if not kSilent then
@@ -531,7 +520,6 @@ end findCueByNumber
 
 
 -- Put the result of a build in the control cue's notes
--- what the last press did
 on reportToControlCue(showTimeText, builtCount)
 	noteOnControlCue("Last build: " & builtCount & " cues for a " & ¬
 		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & ¬
@@ -543,14 +531,12 @@ on noteOnControlCue(theText)
 	if ctrlCue is missing value then return
 	tell application id "com.figure53.QLab.5"
 		try
-			-- A note that will not write is not worth failing a build over
 			set notes of ctrlCue to theText
 		end try
 	end tell
 end noteOnControlCue
 
--- Clear the stored show time. This is what makes cancel mean cancelled. Leave
--- a time behind and tomorrow's operator could press build and get tonight's.
+-- Clear the stored show time for cancellation.
 on resetControlCue()
 	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
 	if ctrlCue is missing value then return
@@ -583,10 +569,7 @@ end deleteList
 
 
 -- Build the AppleScript that goes inside the cleanup script cue.
---
--- It finds the cue list by name, not by reference. The workspace is saved,
--- closed and reopened before this runs, and a reference does not survive
--- that. A name does.
+-- It finds the cue list by name.
 --
 -- The delay lets the cue finish starting before it deletes the list it is
 -- in. Leave "run in separate process" ticked, which is QLab's default, or
@@ -739,10 +722,8 @@ end warnAboutMissingFiles
 
 -- "19:30", "7:30 pm" and "1930" all come out as seconds since midnight.
 --
--- Loose about format, strict about range. The time comes from a dialog, an
--- OSC message or a cue name typed by hand, so refusing over a stray space
--- would be unhelpful. The range check stops "25:70" becoming a cue that
--- never fires.
+-- The time comes from a dialog, an OSC message or a cue name typed by hand, so refusing over a stray space
+-- would be unhelpful. The range check stops "25:70" becoming a cue that never fires.
 on secondsOfDayFromText(theText)
 	set theText to trimText(theText as text)
 	set isPM to (theText contains "pm" or theText contains "PM")
