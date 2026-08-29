@@ -44,8 +44,9 @@ Do not carry on until all four play correctly. Everything after this assumes the
 1. Copy `PreShowAnnouncements.applescript` onto the QLab Mac, into `/Users/booth/Scripts/`.
 2. Open it in **Script Editor**.
 3. Find the four file paths at the top. Replace each one with your own. Drag an audio file into the Script Editor window to get its exact path, then paste it between the quotes.
-4. Look at the schedule below the settings. It lists when each call plays. Note that T-15 plays the *10 minute* call and T-10 the *5 minute* call, as specified. Change those two rows now if that is wrong for you.
-5. Press **Command K** to compile.
+4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. Leave them at `0` for now. You can balance them once you have heard the announcements in the house.
+5. Look at the schedule below the settings. It lists when each call plays. Note that T-15 plays the *10 minute* call and T-10 the *5 minute* call, as specified. Change those two rows now if that is wrong for you.
+6. Press **Command K** to compile.
 
 It must compile with no errors before you go on. If it does not, the error will point at the line, and it is almost always a quote mark missing from a path.
 
@@ -62,7 +63,8 @@ This proves the script and QLab work together, before Companion is anywhere near
 Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding 8 audio cues and a cleanup cue, each named with the time it fires.
 
 6. Click one of the cues and open the **Triggers** tab. The **Wall Clock** box should be ticked, with the right time next to it.
-7. Wait. The T-2 cue should fire on its own, with no GO. At show time the list should delete itself.
+7. Open the same cue's **Levels** tab. The master, left and right faders should read what you set in the config. If left or right did not take, the summary dialog will have said so.
+8. Wait. The T-2 cue should fire on its own, with no GO. At show time the list should delete itself.
 
 If the wall clock boxes are not ticked, the summary dialog will have said so. Tick one by hand, then check the property name against QLab's dictionary, via *File > Open Dictionary* in Script Editor.
 
@@ -273,9 +275,13 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | Code line | Section | What it is | Options |
 |---|---|---|---|
 | `kWelcomeFile` | Configuration | Audio file for the welcome message | Any full POSIX path in quotes |
+| `kWelcomeLevel` | Configuration | Output level of the welcome cues | `{master, left, right}` in dB. `0` is unity, `+12` the maximum, `-120` silence |
 | `kTenMinFile` | Configuration | Audio file for the 10 minute call | Any full POSIX path in quotes |
+| `kTenMinLevel` | Configuration | Output level of the 10 minute call | `{master, left, right}` in dB, as above |
 | `kFiveMinFile` | Configuration | Audio file for the 5 minute call | Any full POSIX path in quotes |
+| `kFiveMinLevel` | Configuration | Output level of the 5 minute call | `{master, left, right}` in dB, as above |
 | `kFinalCallFile` | Configuration | Audio file for the final call | Any full POSIX path in quotes |
+| `kFinalCallLevel` | Configuration | Output level of the final call cues | `{master, left, right}` in dB, as above |
 | `kNoTimeText` | Configuration | Name the control cue resets to when no time is set | Any text, as long as it contains nothing that reads as a time |
 | `kShowTimeCueNumber` | Companion integration | Cue number of the control cue Companion writes the time into | Any cue number, or `""` to turn Companion control off |
 | `kSilent` | Companion integration | Hides all dialogs. Set by the headless handlers, not by you | `true` or `false`. Leave at `false` |
@@ -288,9 +294,11 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | `kAddCleanupCue` | Configuration | Adds the cue that clears the list at show time | `true` or `false`. Only turn off if you will delete the list by hand |
 | `kCleanupOffsetMinutes` | Configuration | When the cleanup runs, in minutes before the show | Any whole number. `0` is show time, `-5` is five minutes after it |
 | `kCleanupAction` | Configuration | What the cleanup does to the list | `"delete"` removes it, `"disarm"` keeps it and marks it `[DONE]` |
-| `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour}`. Add, remove or reorder freely |
+| `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour, level}`. Add, remove or reorder freely |
 
 Colour names must match the ones QLab offers in the cue inspector. `"none"` leaves a cue uncoloured.
+
+Levels are written to the cue on every build, so the config always wins. Left and right are the crosspoints for a stereo file on default routing. A mono file has no right channel, so the summary will report that one as failed and you can ignore it.
 
 ---
 
