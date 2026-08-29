@@ -21,11 +21,27 @@
 
 -- ============================ CONFIGURATION ==================================
 
--- Audio files locations
+-- Audio files locations, and the level each one plays at.
+--
+-- Levels are {master, left, right} in dB, the same numbers QLab shows in a
+-- cue's Levels tab. 0 is unity, +12 is the maximum, and -120 is silence,
+-- which QLab displays as -INF. Every value is set on the cue, so what the
+-- cue plays at always matches what is written here.
+--
+-- Left and right are the crosspoints for a stereo file on default routing.
+-- A mono file has no right channel, so that one will be reported as failed
+-- in the summary and can be ignored. Check a built cue's Levels tab once.
 property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
+property kWelcomeLevel : {0, 0, 0}
+
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
+property kTenMinLevel : {0, 0, 0}
+
 property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
+property kFiveMinLevel : {0, 0, 0}
+
 property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
+property kFinalCallLevel : {0, 0, 0}
 
 -- There is no default show time. The time is either typed into
 -- the dialog or sent from Companion. A missing or unreadable one stops the
@@ -74,18 +90,18 @@ property kCleanupOffsetMinutes : -2
 --             see what ran.
 property kCleanupAction : "delete"
 
--- The schedule: {minutes before show, cue name, audio file, colour}. Add,
--- remove or reorder rows and the rest of the script follows.
+-- The schedule: {minutes before show, cue name, audio file, colour, level}.
+-- Add, remove or reorder rows and the rest of the script follows.
 on announcementSchedule()
 	return {¬
-		{60, "Welcome Message", kWelcomeFile, kWelcomeColour}, ¬
-		{40, "Welcome Message", kWelcomeFile, kWelcomeColour}, ¬
-		{20, "Welcome Message", kWelcomeFile, kWelcomeColour}, ¬
-		{15, "10 Minute Call", kTenMinFile, kCallColour}, ¬
-		{10, "5 Minute Call", kFiveMinFile, kCallColour}, ¬
-		{5, "Final Call", kFinalCallFile, kFinalColour}, ¬
-		{3, "Final Call", kFinalCallFile, kFinalColour}, ¬
-		{2, "Final Call", kFinalCallFile, kFinalColour}}
+		{60, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
+		{40, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
+		{20, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
+		{15, "10 Minute Call", kTenMinFile, kCallColour, kTenMinLevel}, ¬
+		{10, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel}, ¬
+		{5, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
+		{3, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
+		{2, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}}
 end announcementSchedule
 
 -- =========================== END CONFIGURATION ===============================
@@ -248,6 +264,7 @@ on buildPreShow(showTimeText)
 	-- other seven cues. The summary at the end reports all of them.
 	set numberClashes to {}
 	set triggerFailures to {}
+	set levelFailures to {}
 	set crossesMidnight to {}
 	set reportLines to {}
 	set cleanupMade to false
@@ -288,6 +305,7 @@ on buildPreShow(showTimeText)
 				set baseName to item 2 of theRow
 				set thePath to item 3 of theRow
 				set theColour to item 4 of theRow
+				set theLevel to item 5 of theRow
 
 				-- An early call for a lunchtime show falls the night before. The
 				-- trigger is happy, it is a time of day and not a date, but say so.
@@ -316,6 +334,10 @@ on buildPreShow(showTimeText)
 				-- build. The path is in the notes, and the summary lists them.
 				if my fileExists(thePath) then
 					set file target of theCue to POSIX file thePath
+					-- Levels go on after the file target. Assigning a target
+					-- rebuilds the level matrix and would throw them away.
+					if not my applyLevels(theCue, theLevel) then ¬
+						set end of levelFailures to fireText
 				end if
 
 				set wall clock hours of theCue to (fireSecs div 3600)
@@ -428,6 +450,12 @@ on buildPreShow(showTimeText)
 		set summary to summary & return & "WARNING: could not tick the wall " & ¬
 			"clock checkbox on: " & my joinList(triggerFailures, " ") & ¬
 			return & "Enable it by hand in the Triggers tab." & return
+	end if
+	if (count of levelFailures) > 0 then
+		set summary to summary & return & "WARNING: could not set every " & ¬
+			"level on: " & my joinList(levelFailures, " ") & return & ¬
+			"A mono file has no right channel, so that one is expected. " & ¬
+			"Anything else wants checking in the cue's Levels tab." & return
 	end if
 	if (count of numberClashes) > 0 then
 		set summary to summary & return & "Cue numbers already in use, left " & ¬
@@ -594,6 +622,34 @@ on cleanupScriptSource(listName)
 		"end tell"
 end cleanupScriptSource
 
+
+-- Set a cue's master, left and right levels. Returns true if all three took.
+--
+-- Row 0 column 0 is the cue's master. Rows and columns from 1 are the
+-- crosspoints, so a stereo file on default routing is left at 1/1 and right
+-- at 2/2. Each is tried on its own, so a mono file still gets its master and
+-- left set rather than failing outright.
+on applyLevels(theCue, theLevel)
+	set allSet to true
+	tell application id "com.figure53.QLab.5"
+		try
+			tell theCue to setLevel row 0 column 0 db (item 1 of theLevel)
+		on error
+			set allSet to false
+		end try
+		try
+			tell theCue to setLevel row 1 column 1 db (item 2 of theLevel)
+		on error
+			set allSet to false
+		end try
+		try
+			tell theCue to setLevel row 2 column 2 db (item 3 of theLevel)
+		on error
+			set allSet to false
+		end try
+	end tell
+	return allSet
+end applyLevels
 
 -- Tick the wall clock trigger checkbox. Returns true if it worked.
 --
