@@ -25,5 +25,8 @@ Conventions for this repo. Worth a read before a commit.
   screen. AppleScript's `¬`, `≤` and `≥` are syntax, not typography, and stay.
 - Comments say why, not what. Skip narrating the next line.
 - Keep them short and plain. Two clear sentences beat one clever one.
-- Comments stay lowercase. Headings and prose in the docs are normal sentence
-  case.
+- Comments are sentence case: a capital at the start, and after a full stop.
+  Section headers inside the script are in full caps, so `-- QLAB HELPERS`.
+- Capitalise QLab, Companion, Stream Deck, OSC, POSIX and AppleScript.
+- Code samples inside a comment keep their own case. A `set b to load script`
+  line has to stay valid AppleScript when somebody copies it out.
