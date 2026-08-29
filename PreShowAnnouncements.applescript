@@ -61,7 +61,7 @@ property kFinalColour : "red"
 property kAddMemoCue : true
 
 -- Add a script cue at the end that deletes the list at show time, so nothing
--- is left armed for tomorrow. Script cues need a QLab licence.
+-- is left armed for tomorrow.
 property kAddCleanupCue : true
 
 -- Minutes before the show for the cleanup cue. 0 is show time itself. Use a
@@ -94,15 +94,14 @@ end announcementSchedule
 -- MAIN
 --------------------------------------------------------------------------------
 
--- Interactive entry point. Running the script normally starts here.
+-- Running the script normally starts here.
 on run
 	-- Properties keep their value between runs of a compiled script, so a
 	-- Companion press could leave this true. Reset it.
 	set kSilent to false
 	set theSchedule to announcementSchedule()
 
-	-- Clear any leftover list first. Two lists means two sets of triggers, and
-	-- both of them fire.
+	-- Clear any leftover list first. Two lists means two sets of triggers, and both of them fire. No bueno.
 	set existingList to findExistingList()
 	if existingList is not missing value then
 		set existingTime to timeFromListName(nameOfList(existingList))
@@ -225,8 +224,7 @@ on showTimeFromControlCue()
 
 	set s to firstTimeTokenSeconds(rawName)
 	if s is missing value then
-		-- A Stream Deck press gives no other feedback, so put the reason where
-		-- the booth can see it
+		-- A Stream Deck press gives no other feedback, so put the reason where it visible.
 		my noteOnControlCue("BUILD REFUSED - no show time set. Choose a time " & ¬
 			"on the Stream Deck first.")
 		error ("No show time has been set. Cue " & kShowTimeCueNumber & ¬
@@ -250,7 +248,7 @@ on buildPreShow(showTimeText)
 	set builtCount to 0
 	set cueIndex to 0
 
-	-- Problems are collected, not raised. One missing file should not cost the
+	-- Problems are collected so one missing file won't affect the
 	-- other seven cues. The summary at the end reports all of them.
 	set numberClashes to {}
 	set triggerFailures to {}
@@ -267,8 +265,7 @@ on buildPreShow(showTimeText)
 
 		tell front workspace
 
-			-- Check the list was made. Every cue below is moved into it, so without
-			-- it they would be left loose in the show file.
+			-- Check the list was made. Every cue below is moved into it.
 			make type "Cue List"
 			set theList to last cue list
 			set q name of theList to listName
@@ -278,7 +275,7 @@ on buildPreShow(showTimeText)
 				set armed of theList to true
 			end try
 
-			-- A memo at the top, so the show time is readable across the booth
+			-- A memo at the top, so the show time is readable
 			if kAddMemoCue then
 				make type "Memo"
 				set memoCue to last item of (selected as list)
@@ -298,6 +295,7 @@ on buildPreShow(showTimeText)
 
 				-- An early call for a lunchtime show falls the night before. The
 				-- trigger is happy, it is a time of day and not a date, but say so.
+				-- I hate code but gotta specify this, otherwise I'll forget what this does.
 				set fireSecs to my wrapSeconds(showSecs - (minsBefore * 60))
 				if fireSecs > showSecs then ¬
 					set end of crossesMidnight to ("T-" & minsBefore)
@@ -307,7 +305,7 @@ on buildPreShow(showTimeText)
 				make type "Audio"
 				set theCue to last item of (selected as list)
 
-				-- Lead with the fire time so the list reads as a running order
+				-- Leads with the fire time so the list reads as a running order
 				set q name of theCue to (fireText & "  -  " & baseName & ¬
 					"  (T-" & minsBefore & ")")
 				set q color of theCue to theColour
@@ -348,9 +346,7 @@ on buildPreShow(showTimeText)
 					minsBefore & tab & baseName)
 			end repeat
 
-			-- The cleanup cue, last in the list. Wrapped in a try because
-			-- script cues need a licence. A free tier QLab still gets its
-			-- announcements, just with a list to delete by hand.
+			-- The cleanup cue, last in the list.
 			if kAddCleanupCue then
 				try
 					set cleanupSecs to my wrapSeconds(showSecs - ¬
@@ -401,7 +397,7 @@ on buildPreShow(showTimeText)
 		end tell
 	end tell
 
-	-- REPORT ------------------------------------------------------------------
+	-- =========================== SUMMARY REPORTING ===============================
 	set summary to "Created cue list \"" & listName & "\" with " & builtCount & ¬
 		" self-triggering announcement cues." & return & return
 	repeat with L in reportLines
@@ -454,7 +450,7 @@ on buildPreShow(showTimeText)
 	end if
 	return summary
 end buildPreShow
-
+-- =========================== END OF SUMMARY REPORTING ===============================
 
 --------------------------------------------------------------------------------
 -- RESCHEDULING AN EXISTING LIST IN PLACE
@@ -599,7 +595,7 @@ on findCueByNumber(theNumber)
 end findCueByNumber
 
 
--- Put the result of a build in the control cue's notes, so the booth can see
+-- Put the result of a build in the control cue's notes
 -- what the last press did
 on reportToControlCue(showTimeText, builtCount)
 	noteOnControlCue("Last build: " & builtCount & " cues for a " & ¬
