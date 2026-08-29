@@ -185,6 +185,7 @@ on clearPreShow()
 		set n to n + 1
 		if n > 20 then exit repeat
 	end repeat
+	stopFeedbackCues()
 	resetControlCue()
 	return ("cleared " & n & " list(s)")
 end clearPreShow
@@ -490,6 +491,9 @@ on buildPreShow(showTimeText)
 		((count of triggerFailures) is 0) and ¬
 		((count of missingFiles) is 0) and ¬
 		((not kAddCleanupCue) or cleanupMade)
+	-- Clear the last result first, so a rebuild after a failure is not left
+	-- showing both states at once.
+	stopFeedbackCues()
 	if buildIsClean then
 		fireCue(kBuildOKCue)
 	else
@@ -588,6 +592,25 @@ on fireCue(theNumber)
 	end tell
 end fireCue
 
+-- Stop both feedback cues. Called before firing one, on cancel, and by the
+-- cleanup cue at show time, so a cue that loops or holds a light on does not
+-- run into the performance.
+on stopFeedbackCues()
+	stopCue(kBuildOKCue)
+	stopCue(kBuildFailCue)
+end stopFeedbackCues
+
+on stopCue(theNumber)
+	if theNumber is "" then return
+	set theCue to findCueByNumber(theNumber)
+	if theCue is missing value then return
+	tell application id "com.figure53.QLab.5"
+		try
+			stop theCue
+		end try
+	end tell
+end stopCue
+
 -- Clear the stored show time for cancellation.
 on resetControlCue()
 	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
@@ -630,6 +653,37 @@ on cleanupScriptSource(listName)
 	set LF to linefeed
 	set qt to "\""
 
+	-- The feedback cues are stopped before the list goes, so nothing is left
+	-- lit or looping once the show starts. Their numbers are written into the
+	-- generated script, since it runs long after this handler has finished.
+	set feedbackNumbers to {}
+	if kBuildOKCue is not "" then set end of feedbackNumbers to kBuildOKCue
+	if kBuildFailCue is not "" then set end of feedbackNumbers to kBuildFailCue
+
+	set stopBlock to ""
+	if (count of feedbackNumbers) > 0 then
+		set numberList to "{"
+		repeat with i from 1 to count of feedbackNumbers
+			set numberList to numberList & qt & (item i of feedbackNumbers) & qt
+			if i < (count of feedbackNumbers) then ¬
+				set numberList to numberList & ", "
+		end repeat
+		set numberList to numberList & "}"
+
+		set stopBlock to ¬
+			"        -- stop the build feedback cues" & LF & ¬
+			"        repeat with L in (every cue list)" & LF & ¬
+			"            try" & LF & ¬
+			"                repeat with C in (every cue of L)" & LF & ¬
+			"                    try" & LF & ¬
+			"                        if (q number of C) is in " & numberList & ¬
+			" then stop C" & LF & ¬
+			"                    end try" & LF & ¬
+			"                end repeat" & LF & ¬
+			"            end try" & LF & ¬
+			"        end repeat" & LF
+	end if
+
 	if kCleanupAction is "disarm" then
 		set theAction to ¬
 			"                    set armed of L to false" & LF & ¬
@@ -645,6 +699,7 @@ on cleanupScriptSource(listName)
 		"delay 2" & LF & ¬
 		"tell application id " & qt & "com.figure53.QLab.5" & qt & LF & ¬
 		"    tell front workspace" & LF & ¬
+		stopBlock & ¬
 		"        repeat with L in (every cue list)" & LF & ¬
 		"            try" & LF & ¬
 		"                if (q name of L) is " & qt & listName & qt & " then" & LF & ¬

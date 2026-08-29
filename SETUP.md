@@ -125,13 +125,15 @@ Leave **Run in separate process** ticked on both Script cues. That is QLab's def
 
 A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not tick, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
 
+Both are stopped before either is started, when CANCEL is pressed, and by the cleanup cue at show time. So a cue that loops, or one that holds a light or a button colour on, will not run into the performance. That also means they are safe to build as looping cues if a steady indicator suits the booth better than a one-shot.
+
 ## Part 6 - Test the control cues
 
 Still no Companion. You are checking QLab can drive the script on its own.
 
 1. Rename `PSTIME` to `SHOW TIME 19:30`, using a time a few minutes ahead.
 2. GO `PSBUILD`. The temporary cue list should appear.
-3. `PSOK` should have fired on its own straight after the build.
+3. `PSOK` should have fired on its own straight after the build. If you built it as a looping or holding cue, GO `PSCLEAR` and check it stops.
 4. GO `PSCLEAR`. The list should vanish, and `PSTIME` should go back to `SHOW TIME - not set`.
 5. Rename `PSTIME` back to `SHOW TIME - not set` and GO `PSBUILD` again. Nothing should be built. `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, QLab will flag an error on the Script cue, and `PSFAIL` should fire. **That is correct.**
 
@@ -250,9 +252,10 @@ Do the whole thing once, start to finish, on a day with no show.
 4. Check the new cue list. Check the trigger times, and that `PSTIME`'s notes read `Last build: 8 cues...`. `PSOK` should have fired, not `PSFAIL`.
 5. Let the T-2 cue fire on its own. Listen to it in the house.
 6. Press **CANCEL**. The list should disappear and `PSTIME` should reset.
-7. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
+7. If `PSOK` or `PSFAIL` holds rather than plays once, build again and let the cleanup cue run at show time. It should stop both before it deletes the list.
+8. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
 
-Step 7 is the one that proves you are safe on a cancelled show. Do not skip it.
+Step 8 is the one that proves you are safe on a cancelled show. Do not skip it.
 
 ---
 
@@ -282,6 +285,7 @@ If the show time moves, pick the new time and press BUILD again. It deletes and 
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
 | Neither `PSOK` nor `PSFAIL` fires | The cues are missing, disarmed, or their numbers do not match `kBuildOKCue` and `kBuildFailCue` |
+| A feedback cue is still running during the show | The cleanup cue did not run, so nothing stopped it. Same cause as a list left behind |
 
 ---
 
