@@ -1,26 +1,25 @@
 --------------------------------------------------------------------------------
--- pre-show announcements builder for qlab 5
+-- Custom pre-show announcements builder for QLab 5
 --
--- builds a cue list called "Temp-PreShow HH:MM", one audio cue per call.
--- each cue has a wall clock trigger, so it fires itself at a set time of
--- day. nobody presses go.
+-- Builds a cue list called "Temp-PreShow HH:MM", one audio cue per call.
+-- Each cue has a wall clock trigger, so it fires itself at a set time.
 --
--- if a "Temp-PreShow" list already exists you can reschedule it, rebuild
--- it, or delete it.
+-- If a "Temp-PreShow" list already exists you can reschedule it, rebuild
+-- it or delete it.
 --
--- to use: open in script editor with your qlab 5 workspace at the front,
--- edit the configuration below, then run.
+-- To use: open in script editor with your QLab 5 workspace at the front,
+-- edit the configuration below and then run.
 --
--- two things to know:
---   - triggers only fire while the workspace is open, the mac is awake,
+-- Two things to know:
+--   - Triggers only fire while the workspace is open, the mac is awake,
 --     and the cue and its list are armed.
---   - qlab's days-of-week setting is not scriptable, so these triggers
---     are live every day. the list ends with a script cue that deletes it
---     at show time. if that cue cannot run, delete the list by hand.
+--   - QLab's days-of-week setting is not scriptable, so these triggers
+--     are live every day and so the list ends with a script cue that deletes it
+--     at show time. If that cue cannot run, delete the list by hand.
 --------------------------------------------------------------------------------
 
 
--- ============================ configuration ==================================
+-- ============================ CONFIGURATION ==================================
 
 -- audio files. full posix paths. drag a file into script editor to get one.
 property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
