@@ -1,61 +1,56 @@
 --------------------------------------------------------------------------------
 -- pre-show announcements builder for qlab 5
 --
--- makes a cue list called "Temp-PreShow HH:MM" holding one audio cue per
--- pre-show call. every cue gets a wall clock trigger, so it fires itself at a
--- real time of day and nobody has to press go.
+-- builds a cue list called "Temp-PreShow HH:MM", one audio cue per call.
+-- each cue has a wall clock trigger, so it fires itself at a set time of
+-- day. nobody presses go.
 --
--- if a "Temp-PreShow" list is already there you can reschedule it to a new
--- show time in place, rebuild it, or delete it.
+-- if a "Temp-PreShow" list already exists you can reschedule it, rebuild
+-- it, or delete it.
 --
--- to use it, open this in script editor with your qlab 5 workspace at the
--- front, edit the configuration block below, then run.
+-- to use: open in script editor with your qlab 5 workspace at the front,
+-- edit the configuration below, then run.
 --
--- worth knowing before you lean on it:
---   - wall clock triggers only fire while the workspace is open in qlab, the
---     mac is awake, and the cue and its list are armed.
---   - qlab's days-of-week restriction is not scriptable, so these triggers are
---     live every day. that is why the list ends with a script cue that deletes
---     the whole thing at show time. if that cue is disabled or unlicensed,
---     delete the list by hand after the show, or re-run this and choose
---     delete it.
+-- two things to know:
+--   - triggers only fire while the workspace is open, the mac is awake,
+--     and the cue and its list are armed.
+--   - qlab's days-of-week setting is not scriptable, so these triggers
+--     are live every day. the list ends with a script cue that deletes it
+--     at show time. if that cue cannot run, delete the list by hand.
 --------------------------------------------------------------------------------
 
 
 -- ============================ configuration ==================================
 
--- audio files. full posix paths, and the easiest way to get one right is to
--- drag the file into the script editor window.
+-- audio files. full posix paths. drag a file into script editor to get one.
 property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
 property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
 
--- there is deliberately no default show time. nothing is built unless a time
--- has been set on purpose, either typed into the dialog or pushed in from
--- companion. a missing or unreadable time aborts the build rather than quietly
--- assuming one, because a wrong time is worse than no announcements at all.
+-- there is no default show time, on purpose. the time is either typed into
+-- the dialog or sent from companion. a missing or unreadable one stops the
+-- build, because announcements at the wrong time are worse than none.
 
--- what the control cue's name goes back to when no show time is set. it must
--- not contain anything that could be read as a time.
+-- what the control cue is renamed to when no show time is set. it must not
+-- contain anything that reads as a time.
 property kNoTimeText : "SHOW TIME - not set"
 
--- companion / stream deck integration ------------------------------------------
--- the q number of a permanent control cue in your show file. a memo cue is
--- ideal. companion writes the chosen show time into that cue's name over osc:
+-- companion / stream deck integration ----------------------------------------
+-- the q number of a permanent control cue, ideally a memo cue. companion
+-- writes the show time into its name over osc:
 --     /cue/PSTIME/name 19:30
--- and the headless entry points read it back out. set to "" to disable.
+-- and the headless handlers read it back. set to "" to disable.
 property kShowTimeCueNumber : "PSTIME"
 
--- the headless entry points set this true. while it is true the script shows no
--- dialogs at all, so a stream deck press can never leave a modal window sitting
--- on the booth mac waiting for somebody to click ok.
+-- set true by the headless handlers. no dialogs appear while it is true, so
+-- a stream deck press cannot leave a window waiting for a click.
 property kSilent : false
 
--- cue list naming. the show time gets appended, so "Temp-PreShow 19:30".
+-- cue list name. the show time is added, so "Temp-PreShow 19:30".
 property kListPrefix : "Temp-PreShow"
 
--- cue number prefix. numbers come out as PS1, PS2 and so on. "" to skip them.
+-- cue number prefix. numbers come out as PS1, PS2 and so on. "" to skip.
 property kNumberPrefix : "PS"
 
 -- colours by call type. valid qlab colour names, or "none".
@@ -63,32 +58,28 @@ property kWelcomeColour : "green"
 property kCallColour : "blue"
 property kFinalColour : "red"
 
--- put a memo cue at the top of the list restating the show time.
+-- add a memo cue at the top showing the show time.
 property kAddMemoCue : true
 
--- put a self-cleaning script cue at the end of the list. it triggers at show
--- time and removes the whole temporary list, so nothing is left armed to go off
--- again tomorrow. needs a qlab licence, since script cues do not run in the
--- free tier.
+-- add a script cue at the end that deletes the list at show time, so nothing
+-- is left armed for tomorrow. script cues need a qlab licence.
 property kAddCleanupCue : true
 
--- minutes before the show for the cleanup cue. 0 means exactly at show time,
--- when there are no announcements left to make. go negative for after the show
--- has started, so -5 is five minutes into act one.
+-- minutes before the show for the cleanup cue. 0 is show time itself. use a
+-- negative number for after the show starts, so -5 is five minutes in.
 property kCleanupOffsetMinutes : 0
 
--- what the cleanup cue actually does:
---   "delete"  removes the cue list entirely. cleanest.
---   "disarm"  leaves the list in place but disarms it and marks it [DONE], so
---             you can see what ran. the safer option if you would rather not
---             have a cue deleting the list it lives in.
+-- what the cleanup cue does:
+--   "delete"  removes the cue list. cleanest.
+--   "disarm"  keeps the list but disarms it and marks it [DONE], so you can
+--             see what ran.
 property kCleanupAction : "delete"
 
 -- =========================== end configuration ===============================
 
 
 -- the schedule: {minutes before show, cue name, audio file, colour}. add,
--- remove or reorder rows here and the rest of the script follows along.
+-- remove or reorder rows and the rest of the script follows.
 on announcementSchedule()
 	return {¬
 		{60, "Welcome Message", kWelcomeFile, kWelcomeColour}, ¬
@@ -106,15 +97,15 @@ end announcementSchedule
 -- main
 --------------------------------------------------------------------------------
 
--- interactive entry point. running the script normally lands here.
+-- interactive entry point. running the script normally starts here.
 on run
-	-- reset in case a headless run left this true, since properties persist
-	-- between runs of a compiled script.
+	-- properties keep their value between runs of a compiled script, so a
+	-- companion press could leave this true. reset it.
 	set kSilent to false
 	set theSchedule to announcementSchedule()
 
-	-- deal with any list left over from a previous build before making another,
-	-- otherwise you end up with two sets of triggers fighting each other.
+	-- clear any leftover list first. two lists means two sets of triggers, and
+	-- both of them fire.
 	set existingList to findExistingList()
 	if existingList is not missing value then
 		set existingTime to timeFromListName(nameOfList(existingList))
@@ -128,7 +119,7 @@ on run
 			set newTime to askForShowTime(existingTime)
 			return rescheduleList(existingList, newTime, theSchedule)
 		else
-			-- rebuild, so bin the old one and fall through to the build below
+			-- rebuild: delete the old one and carry on to the build below
 			deleteList(existingList)
 		end if
 	end if
@@ -138,25 +129,24 @@ end run
 
 
 --------------------------------------------------------------------------------
--- headless entry points, for driving from companion or a stream deck.
+-- headless entry points, for companion and the stream deck.
 --
--- save this as a compiled script (file > export > script) somewhere permanent,
--- then have a qlab script cue load it and call one of these, along the lines of
+-- export this as a compiled script (file > export > script), then have a
+-- qlab script cue load it and call one of these:
 --
 --     set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
 --     tell b to buildFromQLabCue()
 --
--- the companion notes at the foot of this file spell that out properly. none of
--- these paths show a dialog, so a button press can never block mid-show.
+-- none of these show a dialog, so a button press cannot block mid-show.
+-- the full wiring is at the foot of this file.
 --------------------------------------------------------------------------------
 
--- read the show time out of the control cue and build against it. any existing
--- temporary list is binned first, so one press always lands on a known state
--- rather than on whatever happened to be there.
+-- read the show time from the control cue and build. any old list is deleted
+-- first, so one press always gives the same result.
 on buildFromQLabCue()
 	set kSilent to true
-	-- no fallback here on purpose. an unset time raises, qlab shows the error
-	-- against the script cue, and nothing gets built.
+	-- no fallback. an unset time raises an error, qlab shows it on the
+	-- script cue, and nothing is built.
 	set showTimeText to showTimeFromControlCue()
 	repeat
 		set existingList to findExistingList()
@@ -166,8 +156,8 @@ on buildFromQLabCue()
 	return buildPreShow(showTimeText)
 end buildFromQLabCue
 
--- bin the temporary list and forget the stored show time. this is what a
--- "cancel pre-show" button should call.
+-- delete the list and clear the stored show time. wire this to a cancel
+-- button.
 on clearPreShow()
 	set kSilent to true
 	set n to 0
@@ -176,8 +166,7 @@ on clearPreShow()
 		if existingList is missing value then exit repeat
 		deleteList(existingList)
 		set n to n + 1
-		-- belt and braces. if a delete ever silently fails this would otherwise
-		-- spin forever with qlab wedged behind it.
+		-- a delete that quietly fails would loop forever, so stop after twenty.
 		if n > 20 then exit repeat
 	end repeat
 	resetControlCue()
@@ -185,18 +174,16 @@ on clearPreShow()
 end clearPreShow
 
 
--- the morning purge. run this from a login item every day, a minute or so after
--- the mac comes up and qlab has opened the workspace.
+-- the morning purge. run this from a login item every day.
 --
--- this is not belt and braces, it is load bearing. qlab autosaves the workspace
--- on a timer, so a temporary list built yesterday is on disk. without this, a
--- cancelled show, or any evening where qlab was quit before the cleanup cue
--- ran, leaves yesterday's list armed and it announces again tonight at
--- yesterday's times, to whoever happens to be in the building.
+-- this one is required. qlab autosaves, so a list built yesterday is on
+-- disk. if the show was cancelled, or qlab was quit before the cleanup cue
+-- ran, that list comes back armed and announces again today at yesterday's
+-- times.
 on purgeOnLaunch()
 	set kSilent to true
-	-- login items can start before qlab has a workspace open, so wait rather
-	-- than assume, and give up eventually instead of hanging about all day.
+	-- a login item can start before qlab is ready, so wait for the workspace.
+	-- give up after five minutes.
 	set waited to 0
 	repeat
 		if workspaceIsOpen() then exit repeat
@@ -215,17 +202,17 @@ on workspaceIsOpen()
 			return (count of workspaces) > 0
 		end tell
 	on error
-		-- qlab mid-launch will happily refuse to answer, and that is a not yet
-		-- rather than a no
+		-- qlab refuses to answer while it is starting up. that is a not yet,
+		-- not a no.
 		return false
 	end try
 end workspaceIsOpen
 
 
--- read the show time out of the control cue's name, the cue whose q number is
--- kShowTimeCueNumber. companion writes it there over osc with
+-- read the show time from the control cue's name. companion puts it there
+-- over osc:
 --     /cue/PSTIME/name 19:30
--- raises if nothing readable is sitting there. no default, deliberately.
+-- raises an error if there is no readable time. no default, on purpose.
 on showTimeFromControlCue()
 	if kShowTimeCueNumber is "" then ¬
 		error "kShowTimeCueNumber is empty, so there is no show time to read."
@@ -241,8 +228,8 @@ on showTimeFromControlCue()
 
 	set s to firstTimeTokenSeconds(rawName)
 	if s is missing value then
-		-- leave the reason where the booth will actually see it, since a stream
-		-- deck press gives no other feedback
+		-- a stream deck press gives no other feedback, so put the reason where
+		-- the booth can see it
 		my noteOnControlCue("BUILD REFUSED - no show time set. Choose a time " & ¬
 			"on the Stream Deck first.")
 		error ("No show time has been set. Cue " & kShowTimeCueNumber & ¬
@@ -258,17 +245,16 @@ end showTimeFromControlCue
 
 on buildPreShow(showTimeText)
 	set theSchedule to announcementSchedule()
-	-- round trip through seconds so whatever the operator typed comes out in
-	-- one shape, and the list name and the cue names cannot disagree
+	-- convert to seconds and back, so any input format comes out the same way
+	-- and the list name always matches the cue names
 	set showSecs to secondsOfDayFromText(showTimeText)
 	set showTimeText to hhmmFromSeconds(showSecs)
 	set listName to kListPrefix & " " & showTimeText
 	set builtCount to 0
 	set cueIndex to 0
 
-	-- everything that went sideways is collected rather than raised, so one
-	-- missing file or one taken cue number cannot lose the other seven cues.
-	-- stage 10 turns these into the summary the operator reads.
+	-- problems are collected, not raised. one missing file should not cost the
+	-- other seven cues. the summary at the end reports all of them.
 	set numberClashes to {}
 	set triggerFailures to {}
 	set crossesMidnight to {}
@@ -284,9 +270,8 @@ on buildPreShow(showTimeText)
 
 		tell front workspace
 
-			-- make the list and check we really have it. everything below writes
-			-- into this one list, so carrying on without it would scatter cues
-			-- through the operator's show file.
+			-- check the list was made. every cue below is moved into it, so without
+			-- it they would be left loose in the show file.
 			make type "Cue List"
 			set theList to last cue list
 			set q name of theList to listName
@@ -296,8 +281,7 @@ on buildPreShow(showTimeText)
 				set armed of theList to true
 			end try
 
-			-- a memo at the top, so the show time is legible from across the
-			-- booth without reading trigger times off individual cues
+			-- a memo at the top, so the show time is readable across the booth
 			if kAddMemoCue then
 				make type "Memo"
 				set memoCue to last item of (selected as list)
@@ -315,9 +299,8 @@ on buildPreShow(showTimeText)
 				set thePath to item 3 of theRow
 				set theColour to item 4 of theRow
 
-				-- an early call for a lunchtime show lands yesterday evening.
-				-- the trigger is fine with that, it is a time of day and not a
-				-- date, but the operator should be told.
+				-- an early call for a lunchtime show falls the night before. the
+				-- trigger is happy, it is a time of day and not a date, but say so.
 				set fireSecs to my wrapSeconds(showSecs - (minsBefore * 60))
 				if fireSecs > showSecs then ¬
 					set end of crossesMidnight to ("T-" & minsBefore)
@@ -338,9 +321,8 @@ on buildPreShow(showTimeText)
 					"this cue list after the show.")
 				set armed of theCue to true
 
-				-- a missing file leaves an empty audio cue rather than killing
-				-- the build. the path is in the notes above either way, and the
-				-- summary says which ones are hollow.
+				-- a missing file leaves an empty cue rather than stopping the
+				-- build. the path is in the notes, and the summary lists them.
 				if my fileExists(thePath) then
 					set file target of theCue to POSIX file thePath
 				end if
@@ -351,8 +333,8 @@ on buildPreShow(showTimeText)
 				if not my enableWallClock(theCue) then ¬
 					set end of triggerFailures to fireText
 
-				-- numbers are a convenience for osc, not load bearing, so a
-				-- clash with the operator's own numbering is noted and skipped
+				-- cue numbers are a convenience for osc, so a clash with the
+				-- operator's own numbering is noted and skipped
 				if kNumberPrefix is not "" then
 					set wantedNumber to kNumberPrefix & cueIndex
 					try
@@ -369,10 +351,9 @@ on buildPreShow(showTimeText)
 					minsBefore & tab & baseName)
 			end repeat
 
-			-- the cue that tidies up after itself, last in the list. wrapped in
-			-- a try because script cues need a licence, and a free tier qlab
-			-- should still get its announcements, just with a list to delete by
-			-- hand afterwards.
+			-- the cleanup cue, last in the list. wrapped in a try because
+			-- script cues need a licence. a free tier qlab still gets its
+			-- announcements, just with a list to delete by hand.
 			if kAddCleanupCue then
 				try
 					set cleanupSecs to my wrapSeconds(showSecs - ¬
@@ -416,7 +397,7 @@ on buildPreShow(showTimeText)
 						"   T-" & kCleanupOffsetMinutes & tab & ¬
 						"CLEAN UP (" & kCleanupAction & " cue list)")
 				on error errMsg
-					-- hang on to why, the summary makes a point of it
+					-- keep the reason, the summary reports it
 					set cleanupError to errMsg
 				end try
 			end if
@@ -466,9 +447,8 @@ on buildPreShow(showTimeText)
 	set summary to summary & return & ¬
 		"Re-run this script to reschedule or delete the list."
 
-	-- write the outcome into the control cue whether or not anyone is looking
-	-- at a dialog, since on a stream deck build this is the only feedback there
-	-- is, and it can be read back over osc
+	-- always write the result to the control cue. a stream deck build shows no
+	-- dialog, so this is the only feedback, and osc can read it back.
 	reportToControlCue(showTimeText, builtCount)
 
 	if not kSilent then
@@ -483,9 +463,9 @@ end buildPreShow
 -- rescheduling an existing list in place
 --------------------------------------------------------------------------------
 
--- the show time has moved and the list is already built. re-stamp what is there
--- rather than tearing it down, so anything the operator has tweaked by hand
--- since the build, levels, routing, a swapped file, survives the change.
+-- the show time has moved and the list is already built. change the times in
+-- place rather than rebuilding, so any hand edits since the build, levels,
+-- routing, a swapped file, are kept.
 on rescheduleList(theList, newTimeText, theSchedule)
 	set showSecs to secondsOfDayFromText(newTimeText)
 	set newTimeText to hhmmFromSeconds(showSecs)
@@ -498,10 +478,9 @@ on rescheduleList(theList, newTimeText, theSchedule)
 			set q name of theList to listName
 			set theCues to every cue of theList
 
-			-- audio cues are matched to schedule rows by their order in the
-			-- list, which is the order the build put them in. that holds as long
-			-- as nobody has reordered or deleted cues by hand; if they have,
-			-- rebuild instead of rescheduling.
+			-- audio cues are matched to schedule rows by list order, the order
+			-- the build made them in. if anyone has reordered or deleted cues
+			-- by hand, rebuild instead.
 			set scheduleIndex to 0
 			repeat with theCue in theCues
 				if (q type of theCue) is "Audio" then
@@ -526,9 +505,9 @@ on rescheduleList(theList, newTimeText, theSchedule)
 							minsBefore & tab & baseName)
 					end if
 				else if (q type of theCue) is "Script" then
-					-- the cleanup cue needs its script rewritten as well as its
-					-- time moved, because it finds the list by name and the list
-					-- has just been renamed to the new show time
+					-- the cleanup cue finds the list by name, and the list has
+					-- just been renamed, so rewrite its script as well as
+					-- moving its time
 					set cleanupSecs to my wrapSeconds(showSecs - ¬
 						(kCleanupOffsetMinutes * 60))
 					set cleanupText to my hhmmssFromSeconds(cleanupSecs)
@@ -574,9 +553,8 @@ end rescheduleList
 --------------------------------------------------------------------------------
 
 -- the first cue list whose name starts with kListPrefix, or missing value.
--- matching on the prefix rather than the full name means a list built for any
--- show time is found, which is the point: callers want to know whether one is
--- there at all, not which one.
+-- matching the prefix finds a list built for any show time, which is what
+-- callers want to know: whether one is there at all.
 on findExistingList()
 	tell application id "com.figure53.QLab.5"
 		if (count of workspaces) is 0 then return missing value
@@ -591,11 +569,9 @@ on findExistingList()
 	return missing value
 end findExistingList
 
--- find a cue anywhere in the workspace by its q number. searches every cue list
--- and one level into group cues, which covers a control cue tucked inside a
--- group without recursing through an entire show file on every call. the cues
--- this looks for are ones the setup instructions put at the top level of their
--- own list anyway.
+-- find a cue by its q number. searches every cue list and one level into
+-- groups. that catches a control cue tidied into a group without walking a
+-- whole show file on every call.
 on findCueByNumber(theNumber)
 	if theNumber is "" then return missing value
 	tell application id "com.figure53.QLab.5"
@@ -626,8 +602,8 @@ on findCueByNumber(theNumber)
 end findCueByNumber
 
 
--- write the outcome of a build into the control cue's notes, so the booth can
--- see what the last stream deck press actually did
+-- put the result of a build in the control cue's notes, so the booth can see
+-- what the last press did
 on reportToControlCue(showTimeText, builtCount)
 	noteOnControlCue("Last build: " & builtCount & " cues for a " & ¬
 		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & ¬
@@ -645,9 +621,8 @@ on noteOnControlCue(theText)
 	end tell
 end noteOnControlCue
 
--- wipe the stored show time. this is the whole point of cancel: leaving a time
--- behind would let tomorrow's operator press build and get tonight's schedule
--- without ever choosing anything.
+-- clear the stored show time. this is what makes cancel mean cancelled. leave
+-- a time behind and tomorrow's operator could press build and get tonight's.
 on resetControlCue()
 	set ctrlCue to findCueByNumber(kShowTimeCueNumber)
 	if ctrlCue is missing value then return
@@ -681,14 +656,13 @@ end deleteList
 
 -- build the applescript that goes inside the cleanup script cue.
 --
--- the generated script finds the cue list by name rather than holding a
--- reference to it, because the workspace will have been saved, closed and
--- reopened between this being written and it running, and a reference does not
--- survive that.
+-- it finds the cue list by name, not by reference. the workspace is saved,
+-- closed and reopened before this runs, and a reference does not survive
+-- that. a name does.
 --
--- the delay lets the cue finish starting before it removes the list it is
--- sitting in. leave "run in separate process" ticked on this cue, which is
--- qlab's default, so the script is not killed along with the list.
+-- the delay lets the cue finish starting before it deletes the list it is
+-- in. leave "run in separate process" ticked, which is qlab's default, or
+-- the script is killed along with the list.
 on cleanupScriptSource(listName)
 	set LF to linefeed
 	set qt to "\""
@@ -721,13 +695,12 @@ on cleanupScriptSource(listName)
 end cleanupScriptSource
 
 
--- tick the wall clock trigger checkbox. returns true if it took.
+-- tick the wall clock trigger checkbox. returns true if it worked.
 --
--- tries the enumerated constant first and the string second because the
--- accepted form has moved around between qlab versions, and the whole system
--- is worthless if this one property does not get set. reports failure rather
--- than raising, so a build finishes and the summary can name the cues that need
--- the box ticking by hand.
+-- tries the constant, then the string, because which one qlab accepts has
+-- changed between versions. a cue that does not trigger makes the whole
+-- thing pointless. returns a result instead of raising, so the build
+-- finishes and the summary can name any cue needing the box ticked by hand.
 on enableWallClock(theCue)
 	tell application id "com.figure53.QLab.5"
 		try
@@ -769,8 +742,8 @@ on askForShowTime(defaultText)
 			set s to secondsOfDayFromText(theReply)
 			return hhmmFromSeconds(s)
 		on error
-			-- hand the rejected text back as the default so a fat fingered
-			-- 199:30 is corrected rather than typed out again from scratch
+			-- hand the bad text back as the default, so a mistyped 199:30
+			-- is corrected rather than retyped
 			display dialog "Couldn't read \"" & theReply & ¬
 				"\". Please use HH:MM, e.g. 19:30." buttons {"Try Again"} ¬
 				default button 1 with icon caution
@@ -780,9 +753,8 @@ on askForShowTime(defaultText)
 end askForShowTime
 
 
--- say up front which audio files are not where the configuration claims. this
--- is the last chance to stop before a list of silent cues gets built, and it is
--- the sort of thing that only shows up in the house otherwise.
+-- list any audio files that are missing. a cue with no file looks fine in
+-- qlab and is silent in the house, so it is worth checking before building.
 on warnAboutMissingFiles(theSchedule)
 	if kSilent then return -- never block a stream deck press with a dialog
 	set missingFiles to {}
@@ -810,20 +782,18 @@ end warnAboutMissingFiles
 -- time and text helpers
 --------------------------------------------------------------------------------
 
--- "19:30", "7:30 pm", "1930" all come out as seconds since midnight.
+-- "19:30", "7:30 pm" and "1930" all come out as seconds since midnight.
 --
--- forgiving on the way in because the time arrives from three different places,
--- a dialog, an osc message and a cue name somebody may have typed by hand, and
--- being fussy about the format would just mean refusing to build over a stray
--- space. strict on the way out: the range check is what stops "25:70" becoming
--- a cue that never fires.
+-- loose about format, strict about range. the time comes from a dialog, an
+-- osc message or a cue name typed by hand, so refusing over a stray space
+-- would be unhelpful. the range check stops "25:70" becoming a cue that
+-- never fires.
 on secondsOfDayFromText(theText)
 	set theText to trimText(theText as text)
 	set isPM to (theText contains "pm" or theText contains "PM")
 	set isAM to (theText contains "am" or theText contains "AM")
 
-	-- strip to digits and separators first, so any decoration around the time
-	-- falls away rather than having to be anticipated
+	-- strip to digits and separators, so anything around the time falls away
 	set cleaned to ""
 	repeat with c in (characters of theText)
 		if c is in "0123456789:." then set cleaned to cleaned & c
@@ -853,13 +823,12 @@ on secondsOfDayFromText(theText)
 end secondsOfDayFromText
 
 -- find the first thing that looks like a time in a longer string, or missing
--- value. this is what lets the show time sit inside a cue name such as
--- "SHOW TIME 19:30 (matinee)" rather than having to be the whole name.
+-- value. this lets the show time sit inside a cue name such as
+-- "SHOW TIME 19:30 (matinee)".
 --
--- requires a colon, so a stray "1930" in some other part of the name cannot be
--- mistaken for the time. resets the text item delimiters on the way out of the
--- error path as well, since they are global and leaving them changed would
--- quietly break the next handler that splits a string.
+-- a colon is required, so another number in the name cannot be taken for the
+-- time. the delimiters are reset on the error path too. they are global, and
+-- leaving them set breaks the next handler that splits a string.
 on firstTimeTokenSeconds(theText)
 	try
 		set AppleScript's text item delimiters to {" ", tab, return, linefeed}
@@ -885,9 +854,8 @@ on timeFromListName(theName)
 	return hhmmFromSeconds(s)
 end timeFromListName
 
--- keep a time of day inside the day. a call earlier than the show time by more
--- than the show time itself belongs to yesterday evening, which is exactly what
--- a wall clock trigger wants.
+-- keep a time of day inside the day. a call earlier than midnight wraps back
+-- to the evening before, which is what a wall clock trigger wants.
 on wrapSeconds(s)
 	set s to s as integer
 	repeat while s < 0
@@ -914,8 +882,8 @@ on pad2(n)
 end pad2
 
 
--- coercing to an alias is the cheap way to ask whether a file is really there,
--- since it fails for a path that does not resolve
+-- coercing to an alias fails if the path does not resolve, which is the cheap
+-- way to test for a file
 on fileExists(posixPath)
 	try
 		set f to (POSIX file posixPath) as alias
@@ -934,7 +902,7 @@ on joinList(theList, sep)
 	return out
 end joinList
 
--- trims spaces only, which is all the show time inputs ever pick up
+-- spaces only, which is all a typed or osc show time picks up
 on trimText(t)
 	set t to t as text
 	repeat while t begins with " "
@@ -950,33 +918,33 @@ end trimText
 --------------------------------------------------------------------------------
 -- companion and stream deck setup
 --
--- IN QLAB, a permanent cue list called "PRE-SHOW CONTROL" holding three cues.
--- these live in the show file for good. they are not part of the temporary list
--- and they are the only pre-show cues present at the start of a day.
+-- IN QLAB, a permanent cue list called "PRE-SHOW CONTROL" with three cues.
+-- these stay in the show file. they are not part of the temporary list, and
+-- they are the only pre-show cues there at the start of a day.
 --
 --   PSTIME   memo cue.   name: "SHOW TIME - not set"
 --                        companion overwrites this name with the chosen time.
---                        disarm it, it is a label rather than something to play.
+--                        disarm it. it is a label, not something to play.
 --   PSBUILD  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
 --                        tell b to buildFromQLabCue()
 --   PSCLEAR  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
 --                        tell b to clearPreShow()
 --
--- export this file via file > export > file format: script to that .scpt path,
--- so qlab, the login item and script editor all share one copy and there is no
--- second version to keep in step.
+-- export this file via file > export > file format: script to that .scpt
+-- path. qlab, the login item and script editor then share one copy, so there
+-- is no second version to keep in step.
 --
--- ON THE MAC, a login item that runs purgeOnLaunch() every morning. save this
--- as an applet (file > export > file format: application) holding just these
--- two lines, then add it to login items:
+-- ON THE MAC, a login item that runs purgeOnLaunch() every morning. save it
+-- as an applet (file > export > file format: application) holding these two
+-- lines, then add it to login items:
 --
 --   set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
 --   tell b to purgeOnLaunch()
 --
--- this is required rather than belt and braces. qlab autosaves the workspace on
--- a timer, so a list built yesterday is on disk and would come back armed today.
+-- this is required, not optional. qlab autosaves, so a list built yesterday
+-- is on disk and would come back armed today.
 --
--- IN COMPANION, three pages using the qlabfb connection plus two custom
+-- IN COMPANION, three pages on the qlabfb connection, plus two custom
 -- variables, showHour and showMinute. turn off persist value on both, so a
 -- companion restart leaves them blank and nobody can build yesterday's time.
 --
@@ -997,13 +965,13 @@ end trimText
 --                       internal: custom variable set value, showMinute = "30"
 --                       internal: set surface page = 10
 --
--- store the hour and minute already padded to two characters ("07", "05") in
--- the button actions. that keeps "19:30" well formed without any expression
--- maths, and secondsOfDayFromText above will take it happily.
+-- store the hour and minute padded to two characters ("07", "05") in the
+-- button actions. that keeps "19:30" well formed without any expression
+-- maths.
 --
--- the two osc messages on BUILD have to arrive in order, since the name is set
--- and then the build cue reads it back. that is what the 250 ms wait is for.
+-- the two osc messages on BUILD must arrive in order: the name is set, then
+-- the build cue reads it back. that is what the 250 ms wait is for.
 --
--- nothing is built until BUILD is pressed, and BUILD refuses unless a readable
--- time is sitting in PSTIME's name. there is no default show time anywhere.
+-- nothing is built until BUILD is pressed, and BUILD refuses unless there is
+-- a readable time in PSTIME's name. there is no default show time anywhere.
 --------------------------------------------------------------------------------
