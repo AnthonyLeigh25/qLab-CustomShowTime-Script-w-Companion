@@ -133,3 +133,57 @@ The commonest cause of "it worked yesterday and not today". Each of these needs 
 - PreShow Purge.app controlling QLab (Part 6)
 
 Check them in *System Settings > Privacy & Security > Automation*. All three should list QLab underneath and be switched on. **Renaming or moving `PreShow.scpt` or the purge app resets its permission**, so re-run it by hand after any move.
+
+## Part 9 - Companion
+
+Two custom variables, three pages.
+
+### Custom variables
+
+*Variables tab > Custom Variables*, create `showHour` and `showMinute`.
+Set both to **not persist** across restarts. That way a Companion restart leaves them blank and nobody can accidentally build yesterday's time.
+
+### Connection
+
+The **qlabfb** connection, pointed at the QLab Mac, `127.0.0.1` if Companion runs on the same machine, with the OSC passcode if you set one.
+
+### Page 10 - PRE-SHOW
+
+| Button | Actions |
+|---|---|
+| **NEW SHOW** | `internal: Set surface page` to 11 |
+| **BUILD** | 1. qlabfb custom OSC to `/cue/PSTIME/name`, string arg `$(custom:showHour):$(custom:showMinute)`<br>2. `wait 250 ms`<br>3. qlabfb custom OSC to `/cue/PSBUILD/start` |
+| **CANCEL** | qlabfb custom OSC to `/cue/PSCLEAR/start` |
+
+Set NEW SHOW's button text to:
+```
+NEW SHOW
+$(custom:showHour):$(custom:showMinute)
+```
+so the Stream Deck always shows the time currently selected.
+
+### Page 11 - SELECT HOUR
+
+24 buttons. Each one:
+1. `internal: Custom Variable Set Value` to `showHour` = `"18"`
+2. `internal: Set surface page` to 12
+
+### Page 12 - SELECT MINUTE
+
+12 buttons at five minute steps. Each one:
+1. `internal: Custom Variable Set Value` to `showMinute` = `"30"`
+2. `internal: Set surface page` to 10
+
+> **Pad the values.** Enter `"07"` and `"05"`, not `7` and `5`. Companion *can* pad with expressions, but hardcoding two character strings removes a whole class of `19:5` faults for no effort.
+
+The two OSC messages on BUILD have to arrive in order, since the name is set and then the build cue reads it. That is what the 250 ms wait is for.
+
+## Part 10 - Full dress test
+
+1. Restart the Mac. Do not touch anything. Confirm it logs in, QLab opens the workspace, and `PSTIME` reads `SHOW TIME - not set`.
+2. Press **BUILD** without selecting a time. Nothing should be built, and `PSTIME`'s notes should read `BUILD REFUSED - no show time set`. QLab will flag an error on the Script cue. **This is the correct behaviour.**
+3. Press **NEW SHOW**, pick an hour and minute about five minutes ahead, press **BUILD**.
+4. Check the new cue list. Confirm the trigger times, and that `PSTIME`'s notes read `Last build: 8 cues...`.
+5. Let the T-2 cue fire on its own. Listen to it in the house.
+6. Press **CANCEL**. Confirm the list disappears and `PSTIME` resets.
+7. Build once more, then **quit QLab without letting the cleanup cue run**, and restart the Mac. After login the purge should have removed the stale list. This is the step that proves you are safe on a cancelled show.
