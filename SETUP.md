@@ -187,3 +187,32 @@ The two OSC messages on BUILD have to arrive in order, since the name is set and
 5. Let the T-2 cue fire on its own. Listen to it in the house.
 6. Press **CANCEL**. Confirm the list disappears and `PSTIME` resets.
 7. Build once more, then **quit QLab without letting the cleanup cue run**, and restart the Mac. After login the purge should have removed the stale list. This is the step that proves you are safe on a cancelled show.
+
+---
+
+## Daily use
+
+1. **NEW SHOW**, then hour, then minute
+2. **BUILD**
+3. Confirm the times on screen
+4. Leave it. The announcements and the cleanup run themselves.
+
+If the show time moves before you have built, just pick the new time and press BUILD again. It deletes and rebuilds. If it moves *after* you have built, same thing. BUILD is always safe to press twice.
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| BUILD does nothing at all | Script cues need a QLab licence, or Automation permission was not granted (Part 8) |
+| `No cue numbered PSTIME was found` | Control cues missing, or the workspace open is not the one you set up |
+| `BUILD REFUSED - no show time set` | No time selected on the Stream Deck. Working as intended |
+| Cues built at the wrong time | Companion variables not padded, check for `19:5` |
+| Cues built but silent | File paths wrong. The summary lists any missing files, check the Audio tab of a cue |
+| Wall clock boxes not ticked | Reported in the summary. Tick by hand and check the property name in QLab's dictionary |
+| Nothing fires overnight | Mac slept (Part 7.3), or the workspace was not open |
+| Yesterday's list still present | Purge app not installed, or its Automation permission was reset by moving it |
+| Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
+
+**Every element of this is unverified against a live QLab 5 system.** The script was written against QLab's published AppleScript and OSC dictionaries but has never been run. Work through Parts 3, 5 and 10 properly on a non-show day before trusting it with an audience in the building.
