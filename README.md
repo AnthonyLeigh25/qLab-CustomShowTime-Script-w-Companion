@@ -20,4 +20,17 @@ Companion sends the chosen time over OSC into the name of a permanent QLab cue, 
 
 A login item runs the same script's purge handler each morning. QLab autosaves the workspace, so without it a list built for a cancelled show would come back armed the next day.
 
+## Did it work though
+
+Two more cues sit on the permanent list and the script starts one of them once the build settles. `PSOK` if it went cleanly, `PSFAIL` if it did not. Make them whatever suits your booth: a blip, a light, or a Network cue back to Companion to turn a button green or red. Beats squinting at QLab from across the room.
+
+Failed means any of these, because all four leave you with a list that looks perfectly healthy and does nothing:
+
+- Nothing was built at all, usually no show time set
+- A cue's wall clock box would not tick, so it never fires
+- An audio file was missing, so a cue plays silence
+- The cleanup cue could not be made, so the list is there again tomorrow
+
+Both cues get stopped before either one fires, when you press CANCEL, and by the cleanup cue at show time. So nothing is left blinking away during act one, and you can safely build them as looping cues if you would rather have a steady light than a one-shot.
+
 Start with `SETUP.md`. Hopefully my instructions work, to be confirmed......
