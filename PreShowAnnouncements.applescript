@@ -54,6 +54,13 @@ property kNoTimeText : "SHOW TIME - not set"
 -- and the headless handlers read it back. Set to "" to disable.
 property kShowTimeCueNumber : "PSTIME"
 
+-- Feedback cues on the permanent control list, started after a build. Gives
+-- the booth a sound or a light rather than making somebody read the control
+-- cue's notes. Arm both, unlike the control cue itself. Set either to "" to
+-- skip it.
+property kBuildOKCue : "PSOK"
+property kBuildFailCue : "PSFAIL"
+
 -- Set true by the headless handlers. No dialogs appear while it is true, so
 -- a Stream Deck press cannot leave a window waiting for a click.
 property kSilent : false
@@ -150,14 +157,21 @@ end run
 -- Read the show time from the control cue and build. Any old list is deleted first.
 on buildFromQLabCue()
 	set kSilent to true
-	-- No fallback. An unset time raises an error, QLab shows it on the script cue, and nothing is built.
-	set showTimeText to showTimeFromControlCue()
-	repeat
-		set existingList to findExistingList()
-		if existingList is missing value then exit repeat
-		deleteList(existingList)
-	end repeat
-	return buildPreShow(showTimeText)
+	try
+		-- No fallback. An unset time raises an error, QLab shows it on the script cue, and nothing is built.
+		set showTimeText to showTimeFromControlCue()
+		repeat
+			set existingList to findExistingList()
+			if existingList is missing value then exit repeat
+			deleteList(existingList)
+		end repeat
+		return buildPreShow(showTimeText)
+	on error errMsg
+		-- Nothing was built at all. Fire the fail cue, then re-raise so QLab
+		-- still flags the error against this Script cue.
+		fireCue(kBuildFailCue)
+		error errMsg
+	end try
 end buildFromQLabCue
 
 -- Delete the list and clear the stored show time. Wire this to a cancel button.
@@ -254,6 +268,7 @@ on buildPreShow(showTimeText)
 	set numberClashes to {}
 	set triggerFailures to {}
 	set levelFailures to {}
+	set missingFiles to {}
 	set crossesMidnight to {}
 	set reportLines to {}
 	set cleanupMade to false
@@ -327,6 +342,10 @@ on buildPreShow(showTimeText)
 					-- rebuilds the level matrix and would throw them away.
 					if not my applyLevels(theCue, theLevel) then ¬
 						set end of levelFailures to fireText
+				else
+					-- Recorded because a Stream Deck build shows no dialog, so
+					-- this is the only way an empty cue gets reported.
+					set end of missingFiles to fireText
 				end if
 
 				set wall clock hours of theCue to (fireSecs div 3600)
@@ -435,6 +454,11 @@ on buildPreShow(showTimeText)
 			"midnight of the previous day: " & my joinList(crossesMidnight, " ") & ¬
 			return
 	end if
+	if (count of missingFiles) > 0 then
+		set summary to summary & return & "WARNING: audio file not found " & ¬
+			"for: " & my joinList(missingFiles, " ") & return & ¬
+			"Those cues were built empty and will play nothing." & return
+	end if
 	if (count of triggerFailures) > 0 then
 		set summary to summary & return & "WARNING: could not tick the wall " & ¬
 			"clock checkbox on: " & my joinList(triggerFailures, " ") & ¬
@@ -456,6 +480,21 @@ on buildPreShow(showTimeText)
 	-- Always write the result to the control cue. A Stream Deck build shows no
 	-- dialog, so this is the only feedback and OSC should be able to read it back.
 	reportToControlCue(showTimeText, builtCount)
+
+	-- A cue whose wall clock box would not tick never fires, and a cue with
+	-- no file plays nothing. Both look fine in the list, so both count as a
+	-- failed build even though the list exists. Level failures are left out
+	-- on purpose: a wrong level is audible, and a mono file always reports
+	-- its right channel as failed.
+	set buildIsClean to (builtCount > 0) and ¬
+		((count of triggerFailures) is 0) and ¬
+		((count of missingFiles) is 0) and ¬
+		((not kAddCleanupCue) or cleanupMade)
+	if buildIsClean then
+		fireCue(kBuildOKCue)
+	else
+		fireCue(kBuildFailCue)
+	end if
 
 	if not kSilent then
 		display dialog summary buttons {"OK"} default button 1 with title ¬
@@ -535,6 +574,19 @@ on noteOnControlCue(theText)
 		end try
 	end tell
 end noteOnControlCue
+
+-- Start one of the feedback cues. A missing or unarmed cue is ignored,
+-- because feedback failing is never a reason to fail a build.
+on fireCue(theNumber)
+	if theNumber is "" then return
+	set theCue to findCueByNumber(theNumber)
+	if theCue is missing value then return
+	tell application id "com.figure53.QLab.5"
+		try
+			start theCue
+		end try
+	end tell
+end fireCue
 
 -- Clear the stored show time for cancellation.
 on resetControlCue()

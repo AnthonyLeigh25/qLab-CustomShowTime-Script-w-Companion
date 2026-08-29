@@ -107,9 +107,23 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
   tell b to clearPreShow()
   ```
 
+**4. Build succeeded cue**
+- Cue number: `PSOK`
+- Name: `BUILD OK`
+- **Arm it.** Unlike `PSTIME`, this one plays.
+- Any cue type you like: a short audio blip, a Light cue, or a Network cue back to Companion to turn a Stream Deck button green.
+
+**5. Build failed cue**
+- Cue number: `PSFAIL`
+- Name: `BUILD FAILED`
+- **Arm it.**
+- Same idea, but for a failure. A red button or a different sound.
+
 Leave **Run in separate process** ticked on both Script cues. That is QLab's default.
 
-`PSTIME` holds the show time in its name. `PSBUILD` reads it and builds. `PSCLEAR` clears everything.
+`PSTIME` holds the show time in its name. `PSBUILD` reads it and builds. `PSCLEAR` clears everything. `PSOK` and `PSFAIL` are started by the script to say how the build went.
+
+A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not tick, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
 
 ## Part 6 - Test the control cues
 
@@ -117,8 +131,9 @@ Still no Companion. You are checking QLab can drive the script on its own.
 
 1. Rename `PSTIME` to `SHOW TIME 19:30`, using a time a few minutes ahead.
 2. GO `PSBUILD`. The temporary cue list should appear.
-3. GO `PSCLEAR`. The list should vanish, and `PSTIME` should go back to `SHOW TIME - not set`.
-4. Rename `PSTIME` back to `SHOW TIME - not set` and GO `PSBUILD` again. Nothing should be built. `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, and QLab will flag an error on the Script cue. **That is correct.**
+3. `PSOK` should have fired on its own straight after the build.
+4. GO `PSCLEAR`. The list should vanish, and `PSTIME` should go back to `SHOW TIME - not set`.
+5. Rename `PSTIME` back to `SHOW TIME - not set` and GO `PSBUILD` again. Nothing should be built. `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, QLab will flag an error on the Script cue, and `PSFAIL` should fire. **That is correct.**
 
 If `PSBUILD` does nothing at all, check your QLab licence first, then Part 9.
 
@@ -230,9 +245,9 @@ so the Stream Deck always shows the time selected.
 Do the whole thing once, start to finish, on a day with no show.
 
 1. Restart the Mac. Do not touch anything. Check it logs in, QLab opens the workspace, and `PSTIME` reads `SHOW TIME - not set`.
-2. Press **BUILD** without picking a time. Nothing should be built, and `PSTIME`'s notes should read `BUILD REFUSED - no show time set`.
+2. Press **BUILD** without picking a time. Nothing should be built, `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, and `PSFAIL` should fire.
 3. Press **NEW SHOW**, pick an hour and minute about five minutes ahead, then press **BUILD**.
-4. Check the new cue list. Check the trigger times, and that `PSTIME`'s notes read `Last build: 8 cues...`.
+4. Check the new cue list. Check the trigger times, and that `PSTIME`'s notes read `Last build: 8 cues...`. `PSOK` should have fired, not `PSFAIL`.
 5. Let the T-2 cue fire on its own. Listen to it in the house.
 6. Press **CANCEL**. The list should disappear and `PSTIME` should reset.
 7. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
@@ -265,6 +280,8 @@ If the show time moves, pick the new time and press BUILD again. It deletes and 
 | Nothing fires overnight | The Mac slept (Part 8.3), or the workspace was not open |
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
+| `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
+| Neither `PSOK` nor `PSFAIL` fires | The cues are missing, disarmed, or their numbers do not match `kBuildOKCue` and `kBuildFailCue` |
 
 ---
 
@@ -284,6 +301,8 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | `kFinalCallLevel` | Configuration | Output level of the final call cues | `{master, left, right}` in dB, as above |
 | `kNoTimeText` | Configuration | Name the control cue resets to when no time is set | Any text, as long as it contains nothing that reads as a time |
 | `kShowTimeCueNumber` | Companion integration | Cue number of the control cue Companion writes the time into | Any cue number, or `""` to turn Companion control off |
+| `kBuildOKCue` | Companion integration | Cue started when a build finishes clean | Any cue number, or `""` to skip the feedback |
+| `kBuildFailCue` | Companion integration | Cue started when a build fails or is degraded | Any cue number, or `""` to skip the feedback |
 | `kSilent` | Companion integration | Hides all dialogs. Set by the headless handlers, not by you | `true` or `false`. Leave at `false` |
 | `kListPrefix` | Configuration | Name of the temporary cue list, before the show time | Any text |
 | `kNumberPrefix` | Configuration | Prefix for the announcement cue numbers | Any text, or `""` to leave the cues unnumbered |
