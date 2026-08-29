@@ -74,9 +74,6 @@ property kCleanupOffsetMinutes : -2
 --             see what ran.
 property kCleanupAction : "delete"
 
--- =========================== end configuration ===============================
-
-
 -- The schedule: {minutes before show, cue name, audio file, colour}. Add,
 -- remove or reorder rows and the rest of the script follows.
 on announcementSchedule()
@@ -91,6 +88,7 @@ on announcementSchedule()
 		{2, "Final Call", kFinalCallFile, kFinalColour}}
 end announcementSchedule
 
+-- =========================== END CONFIGURATION ===============================
 
 --------------------------------------------------------------------------------
 -- MAIN
