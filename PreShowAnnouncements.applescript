@@ -21,15 +21,15 @@
 
 -- ============================ CONFIGURATION ==================================
 
--- Audio files. Full POSIX paths. Drag a file into script editor to get one.
+-- Audio files locations
 property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
 property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
 
--- There is no default show time, on purpose. The time is either typed into
+-- There is no default show time. The time is either typed into
 -- the dialog or sent from Companion. A missing or unreadable one stops the
--- build, because announcements at the wrong time are worse than none.
+-- script from building.
 
 -- What the control cue is renamed to when no show time is set. It must not
 -- contain anything that reads as a time.
@@ -66,7 +66,7 @@ property kAddCleanupCue : true
 
 -- Minutes before the show for the cleanup cue. 0 is show time itself. Use a
 -- negative number for after the show starts, so -5 is five minutes in.
-property kCleanupOffsetMinutes : 0
+property kCleanupOffsetMinutes : -2
 
 -- What the cleanup cue does:
 --   "delete"  removes the cue list. Cleanest.
