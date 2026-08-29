@@ -57,9 +57,9 @@ property kNoTimeText : "SHOW TIME - not set"
 property kShowTimeCueNumber : "PSTIME"
 
 -- Feedback cues on the permanent control list, started after a build. Gives
--- the booth a sound or a light rather than making somebody read the control
--- cue's notes. Arm both, unlike the control cue itself. Set either to "" to
--- skip it.
+-- the control position a sound or a light rather than making somebody read
+-- the control cue's notes. Arm both, unlike the control cue itself. Set
+-- either to "" to skip it.
 property kBuildOKCue : "PSOK"
 property kBuildFailCue : "PSFAIL"
 

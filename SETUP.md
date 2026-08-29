@@ -34,14 +34,14 @@ You need:
 ## Part 1 - Prepare the audio
 
 1. Gather your announcement audio. As shipped the schedule uses three files: Welcome, 5 Minute Call and Final Call. A fourth, a 10 minute call, is set up in the config but not in the schedule, ready if you want it.
-2. Put them somewhere permanent and local. **Not** a network share, not a folder that gets cleared. Something like `/Users/booth/Show Audio/Announcements/`.
+2. Put them somewhere permanent and local. **Not** a network share, not a folder that gets cleared. Something like `/Users/qlab/Show Audio/Announcements/`.
 3. Play each one in QLab by hand, to check it routes to the right outputs.
 
 Do not carry on until all four play correctly. Everything after this assumes the audio itself is fine.
 
 ## Part 2 - Set up the script
 
-1. Copy `PreShowAnnouncements.applescript` onto the QLab Mac, into `/Users/booth/Scripts/`.
+1. Copy `PreShowAnnouncements.applescript` onto the QLab Mac, into `/Users/qlab/Scripts/`.
 2. Open it in **Script Editor**.
 3. Find the four file paths at the top. Replace each one with your own. Drag an audio file into the Script Editor window to get its exact path, then paste it between the quotes.
 4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. Leave them at `0` for now. You can balance them once you have heard the announcements in the house.
@@ -74,7 +74,7 @@ QLab, the Login Item and Script Editor all load this one file. One copy means th
 
 1. In Script Editor: **File > Export**
 2. File Format: **Script**
-3. Save as `/Users/booth/Scripts/PreShow.scpt`
+3. Save as `/Users/qlab/Scripts/PreShow.scpt`
 
 Edit the `.applescript` later and you must **export it again**, or QLab carries on running the old version.
 
@@ -94,7 +94,7 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - Name: `BUILD PRE-SHOW`
 - Script:
   ```applescript
-  set b to load script (POSIX file "/Users/booth/Scripts/PreShow.scpt")
+  set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
   tell b to buildFromQLabCue()
   ```
 
@@ -103,7 +103,7 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - Name: `CANCEL PRE-SHOW`
 - Script:
   ```applescript
-  set b to load script (POSIX file "/Users/booth/Scripts/PreShow.scpt")
+  set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
   tell b to clearPreShow()
   ```
 
@@ -125,7 +125,7 @@ Leave **Run in separate process** ticked on both Script cues. That is QLab's def
 
 A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not tick, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
 
-Both are stopped before either is started, when CANCEL is pressed, and by the cleanup cue at show time. So a cue that loops, or one that holds a light or a button colour on, will not run into the performance. That also means they are safe to build as looping cues if a steady indicator suits the booth better than a one-shot.
+Both are stopped before either is started, when CANCEL is pressed, and by the cleanup cue at show time. So a cue that loops, or one that holds a light or a button colour on, will not run into the performance. That also means they are safe to build as looping cues if a steady indicator suits the control position better than a one-shot.
 
 ## Part 6 - Test the control cues
 
@@ -147,10 +147,10 @@ QLab autosaves, so a list built today is written to disk. If the show is cancell
 
 1. In Script Editor, open a new document and paste these two lines:
    ```applescript
-   set b to load script (POSIX file "/Users/booth/Scripts/PreShow.scpt")
+   set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
    tell b to purgeOnLaunch()
    ```
-2. **File > Export**, File Format: **Application**, saved as `/Users/booth/Scripts/PreShow Purge.app`
+2. **File > Export**, File Format: **Application**, saved as `/Users/qlab/Scripts/PreShow Purge.app`
 3. **Run it once by hand now.** macOS will ask whether it may control QLab. Click OK. This approval cannot be given on an unattended restart, so it has to happen here.
 4. **System Settings > General > Login Items**, then **+**, and add `PreShow Purge.app`.
 
@@ -163,7 +163,7 @@ Four things have to be true, or the system will not survive a restart.
 **1. The Mac logs in on its own.**
 *System Settings > Users & Groups > Automatically log in as.*
 
-**FileVault blocks this.** With FileVault on, the Mac stops at the unlock screen and nothing launches at all. Turn it off on a booth machine, or accept that somebody unlocks it each morning.
+**FileVault blocks this.** With FileVault on, the Mac stops at the unlock screen and nothing launches at all. Turn it off on a machine that has to start on its own, or accept that somebody unlocks it each morning.
 
 **2. The workspace opens on its own.**
 QLab has no reopen last workspace option, so add the workspace *file* to Login Items next to the purge app: *Login Items > + >* select your `.qlab5` file.

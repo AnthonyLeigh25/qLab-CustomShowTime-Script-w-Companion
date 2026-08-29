@@ -22,7 +22,7 @@ A login item runs the same script's purge handler each morning. QLab autosaves t
 
 ## Did it work though
 
-Two more cues sit on the permanent list and the script starts one of them once the build settles. `PSOK` if it went cleanly, `PSFAIL` if it did not. Make them whatever suits your booth: a blip, a light, or a Network cue back to Companion to turn a button green or red. Beats squinting at QLab from across the room.
+Two more cues sit on the permanent list and the script starts one of them once the build settles. `PSOK` if it went cleanly, `PSFAIL` if it did not. Make them whatever suits your control position: a blip, a light, or a Network cue back to Companion to turn a button green or red. Beats squinting at QLab from across the room.
 
 Failed means any of these, because all four leave you with a list that looks perfectly healthy and does nothing:
 
