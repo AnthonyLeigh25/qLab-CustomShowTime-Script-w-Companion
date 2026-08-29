@@ -99,7 +99,6 @@ on run
 	-- Properties keep their value between runs of a compiled script, so a
 	-- Companion press could leave this true. Reset it.
 	set kSilent to false
-	set theSchedule to announcementSchedule()
 
 	-- Clear any leftover list first. Two lists means two sets of triggers, and both of them fire. No bueno.
 	set existingList to findExistingList()
@@ -111,9 +110,6 @@ on run
 			display dialog "Deleted the old pre-show cue list." buttons {"OK"} ¬
 				default button 1 with title "Pre-Show Announcements"
 			return "deleted"
-		else if whatNow is "RESCHEDULE" then
-			set newTime to askForShowTime(existingTime)
-			return rescheduleList(existingList, newTime, theSchedule)
 		else
 			-- Rebuild: delete the old one and carry on to the build below
 			deleteList(existingList)
@@ -365,7 +361,7 @@ on buildPreShow(showTimeText)
 						" and " & kCleanupAction & "s the cue list \"" & ¬
 						listName & "\", so these wall clock triggers don't " & ¬
 						"fire again tomorrow." & return & ¬
-						"Reschedule via the builder script to keep this in step.")
+						"Re-run the builder to change the show time.")
 					set armed of cleanupCue to true
 
 					set wall clock hours of cleanupCue to (cleanupSecs div 3600)
@@ -451,95 +447,6 @@ on buildPreShow(showTimeText)
 	return summary
 end buildPreShow
 -- =========================== END OF SUMMARY REPORTING ===============================
-
---------------------------------------------------------------------------------
--- RESCHEDULING AN EXISTING LIST IN PLACE
---------------------------------------------------------------------------------
-
--- The show time has moved and the list is already built. Change the times in
--- place rather than rebuilding, so any hand edits since the build, levels,
--- routing, a swapped file, are kept.
-on rescheduleList(theList, newTimeText, theSchedule)
-	set showSecs to secondsOfDayFromText(newTimeText)
-	set newTimeText to hhmmFromSeconds(showSecs)
-	set listName to kListPrefix & " " & newTimeText
-	set movedCount to 0
-	set reportLines to {}
-
-	tell application id "com.figure53.QLab.5"
-		tell front workspace
-			set q name of theList to listName
-			set theCues to every cue of theList
-
-			-- Audio cues are matched to schedule rows by list order, the order
-			-- the build made them in. If anyone has reordered or deleted cues
-			-- by hand, rebuild instead.
-			set scheduleIndex to 0
-			repeat with theCue in theCues
-				if (q type of theCue) is "Audio" then
-					set scheduleIndex to scheduleIndex + 1
-					if scheduleIndex ≤ (count of theSchedule) then
-						set theRow to item scheduleIndex of theSchedule
-						set minsBefore to item 1 of theRow
-						set baseName to item 2 of theRow
-
-						set fireSecs to my wrapSeconds(showSecs - (minsBefore * 60))
-						set fireText to my hhmmssFromSeconds(fireSecs)
-
-						set wall clock hours of theCue to (fireSecs div 3600)
-						set wall clock minutes of theCue to ((fireSecs mod 3600) div 60)
-						set wall clock seconds of theCue to (fireSecs mod 60)
-						my enableWallClock(theCue)
-						set armed of theCue to true
-						set q name of theCue to (fireText & "  -  " & baseName & ¬
-							"  (T-" & minsBefore & ")")
-						set movedCount to movedCount + 1
-						set end of reportLines to ("  " & fireText & "   T-" & ¬
-							minsBefore & tab & baseName)
-					end if
-				else if (q type of theCue) is "Script" then
-					-- The cleanup cue finds the list by name, and the list has
-					-- just been renamed, so rewrite its script as well as
-					-- moving its time
-					set cleanupSecs to my wrapSeconds(showSecs - ¬
-						(kCleanupOffsetMinutes * 60))
-					set cleanupText to my hhmmssFromSeconds(cleanupSecs)
-					set wall clock hours of theCue to (cleanupSecs div 3600)
-					set wall clock minutes of theCue to ¬
-						((cleanupSecs mod 3600) div 60)
-					set wall clock seconds of theCue to (cleanupSecs mod 60)
-					my enableWallClock(theCue)
-					set armed of theCue to true
-					try
-						set script source of theCue to ¬
-							my cleanupScriptSource(listName)
-					end try
-					set q name of theCue to (cleanupText & "  -  CLEAN UP: " & ¬
-						kCleanupAction & " this cue list")
-					set end of reportLines to ("  " & cleanupText & "   T-" & ¬
-						kCleanupOffsetMinutes & tab & "CLEAN UP (" & ¬
-						kCleanupAction & " cue list)")
-				else if kAddMemoCue and (q type of theCue) is "Memo" then
-					set q name of theCue to ("SHOW AT " & newTimeText & ¬
-						"  -  delete this cue list after the show")
-				end if
-			end repeat
-		end tell
-	end tell
-
-	set summary to "Rescheduled " & movedCount & " cues to a " & newTimeText & ¬
-		" show." & return & return
-	repeat with L in reportLines
-		set summary to summary & L & return
-	end repeat
-	reportToControlCue(newTimeText, movedCount)
-	if not kSilent then
-		display dialog summary buttons {"OK"} default button 1 with title ¬
-			"Pre-Show Announcements"
-	end if
-	return summary
-end rescheduleList
-
 
 --------------------------------------------------------------------------------
 -- QLAB HELPERS
@@ -716,14 +623,13 @@ end enableWallClock
 on chooseExistingAction(existingTime)
 	set msg to "A pre-show cue list already exists"
 	if existingTime is not "" then set msg to msg & ", set for " & existingTime
-	set msg to msg & "." & return & return & "Reschedule keeps the cues and " & ¬
-		"just changes their trigger times. Rebuild deletes and recreates them."
-	display dialog msg buttons {"Delete It", "Rebuild", "Reschedule"} ¬
-		default button "Reschedule" with title "Pre-Show Announcements"
+	set msg to msg & "." & return & return & "Rebuild deletes it and makes " & ¬
+		"it again against the current schedule and a new show time."
+	display dialog msg buttons {"Delete It", "Rebuild"} ¬
+		default button "Rebuild" with title "Pre-Show Announcements"
 	set b to button returned of the result
 	if b is "Delete It" then return "DELETE"
-	if b is "Rebuild" then return "REBUILD"
-	return "RESCHEDULE"
+	return "REBUILD"
 end chooseExistingAction
 
 on askForShowTime(defaultText)
