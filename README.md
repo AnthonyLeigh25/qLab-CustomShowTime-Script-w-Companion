@@ -9,7 +9,7 @@ On a stream deck with companion, press New Show, pick the time and press build. 
 | Press | What happens |
 |---|---|
 | **NEW SHOW** | Pick an hour, then a minute. The button shows the time chosen |
-| **BUILD** | Builds `Temp-PreShow 19:30`: eight announcement cues and a cleanup cue, all clock triggered |
+| **BUILD** | Builds `Temp-PreShow 19:30`: one cue per call in the schedule, ten as shipped, plus a cleanup cue, all clock triggered |
 | **CANCEL** | Deletes the list and clears the stored time |
 
 There is no default show time. This is for creating those weird show times that you don't have presets for or just y'know use this instead of building presets I guess.

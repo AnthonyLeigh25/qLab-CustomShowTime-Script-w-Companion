@@ -13,7 +13,7 @@ The order is: audio, then the script, then QLab, then the Mac, then Companion. C
 | Stream Deck press | What happens |
 |---|---|
 | **NEW SHOW** | Pick an hour, then a minute |
-| **BUILD** | Creates a `Temp-PreShow 19:30` cue list: 8 announcements and a cleanup cue |
+| **BUILD** | Creates a `Temp-PreShow 19:30` cue list: 10 announcements and a cleanup cue |
 | **CANCEL** | Deletes the list and clears the stored time |
 
 The announcements fire themselves at wall clock times. Nobody presses GO. At show time the cleanup cue deletes the list.
@@ -33,7 +33,7 @@ You need:
 
 ## Part 1 - Prepare the audio
 
-1. Gather four audio files: Welcome, 10 Minute Call, 5 Minute Call, Final Call.
+1. Gather your announcement audio. As shipped the schedule uses three files: Welcome, 5 Minute Call and Final Call. A fourth, a 10 minute call, is set up in the config but not in the schedule, ready if you want it.
 2. Put them somewhere permanent and local. **Not** a network share, not a folder that gets cleared. Something like `/Users/booth/Show Audio/Announcements/`.
 3. Play each one in QLab by hand, to check it routes to the right outputs.
 
@@ -45,7 +45,7 @@ Do not carry on until all four play correctly. Everything after this assumes the
 2. Open it in **Script Editor**.
 3. Find the four file paths at the top. Replace each one with your own. Drag an audio file into the Script Editor window to get its exact path, then paste it between the quotes.
 4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. Leave them at `0` for now. You can balance them once you have heard the announcements in the house.
-5. Look at the schedule below the settings. It lists when each call plays. Note that T-15 plays the *10 minute* call and T-10 the *5 minute* call, as specified. Change those two rows now if that is wrong for you.
+5. Look at the schedule below the settings. It lists when each call plays, counted back from the show time. As shipped: Welcome at T-60, T-50, T-40, T-30 and T-20, the 5 minute call at T-10 and T-8, and the Final Call at T-5, T-3 and T-1. Change it now if that is not your running order.
 6. Press **Command K** to compile.
 
 It must compile with no errors before you go on. If it does not, the error will point at the line, and it is almost always a quote mark missing from a path.
@@ -60,11 +60,11 @@ This proves the script and QLab work together, before Companion is anywhere near
 4. When it asks for a show time, enter one about **four minutes from now**.
 5. You should get a summary dialog listing what it built.
 
-Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding 8 audio cues and a cleanup cue, each named with the time it fires.
+Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding one audio cue per row of the schedule, 10 as shipped, and a cleanup cue. Each is named with the time it fires.
 
 6. Click one of the cues and open the **Triggers** tab. The **Wall Clock** box should be ticked, with the right time next to it.
 7. Open the same cue's **Levels** tab. The master, left and right faders should read what you set in the config. If left or right did not take, the summary dialog will have said so.
-8. Wait. The T-2 cue should fire on its own, with no GO. At show time the list should delete itself.
+8. Wait. The T-1 cue should fire on its own, with no GO. At show time the list should delete itself.
 
 If the wall clock boxes are not ticked, the summary dialog will have said so. Tick one by hand, then check the property name against QLab's dictionary, via *File > Open Dictionary* in Script Editor.
 
@@ -249,8 +249,8 @@ Do the whole thing once, start to finish, on a day with no show.
 1. Restart the Mac. Do not touch anything. Check it logs in, QLab opens the workspace, and `PSTIME` reads `SHOW TIME - not set`.
 2. Press **BUILD** without picking a time. Nothing should be built, `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, and `PSFAIL` should fire.
 3. Press **NEW SHOW**, pick an hour and minute about five minutes ahead, then press **BUILD**.
-4. Check the new cue list. Check the trigger times, and that `PSTIME`'s notes read `Last build: 8 cues...`. `PSOK` should have fired, not `PSFAIL`.
-5. Let the T-2 cue fire on its own. Listen to it in the house.
+4. Check the new cue list. Check the trigger times, and that `PSTIME`'s notes read `Last build: 10 cues...`. `PSOK` should have fired, not `PSFAIL`.
+5. Let the T-1 cue fire on its own. Listen to it in the house.
 6. Press **CANCEL**. The list should disappear and `PSTIME` should reset.
 7. If `PSOK` or `PSFAIL` holds rather than plays once, build again and let the cleanup cue run at show time. It should stop both before it deletes the list.
 8. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
@@ -297,8 +297,8 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 |---|---|---|---|
 | `kWelcomeFile` | Configuration | Audio file for the welcome message | Any full POSIX path in quotes |
 | `kWelcomeLevel` | Configuration | Output level of the welcome cues | `{master, left, right}` in dB. `0` is unity, `+12` the maximum, `-120` silence |
-| `kTenMinFile` | Configuration | Audio file for the 10 minute call | Any full POSIX path in quotes |
-| `kTenMinLevel` | Configuration | Output level of the 10 minute call | `{master, left, right}` in dB, as above |
+| `kTenMinFile` | Configuration | Audio file for a 10 minute call. Spare, not in the schedule as shipped | Any full POSIX path in quotes |
+| `kTenMinLevel` | Configuration | Output level of the 10 minute call. Spare, as above | `{master, left, right}` in dB, as above |
 | `kFiveMinFile` | Configuration | Audio file for the 5 minute call | Any full POSIX path in quotes |
 | `kFiveMinLevel` | Configuration | Output level of the 5 minute call | `{master, left, right}` in dB, as above |
 | `kFinalCallFile` | Configuration | Audio file for the final call | Any full POSIX path in quotes |

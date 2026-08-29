@@ -30,6 +30,8 @@
 property kWelcomeFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-concert FOH areas no mask .wav"
 property kWelcomeLevel : {0, 0, -10}
 
+-- Spare. Not in the schedule at the moment, kept for when a 10 minute call
+-- is wanted again. An unused property costs nothing.
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kTenMinLevel : {0, 0, 0}
 
