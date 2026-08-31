@@ -1,70 +1,56 @@
 # Pre-Show Announcements - Setup
 
-Setting up the pre-show announcement system on the QLab Mac.
+## Companion Buttons
 
-Work through the parts in order. Each one builds on the last, so nothing is tested before the thing it depends on. Allow about an hour, and do it on a day with no show.
-
-The order is: audio, then the script, then QLab, then the Mac, then Companion. Companion is last on purpose. By the time you get to it, everything it talks to has already been proved to work by hand.
-
----
-
-## What you end up with
-
-| Stream Deck press | What happens |
+| Stream Deck Button | Action |
 |---|---|
 | **NEW SHOW** | Pick an hour, then a minute |
-| **BUILD** | Creates a `Temp-PreShow 19:30` cue list: 10 announcements and a cleanup cue |
+| **BUILD** | Creates a `Temp-PreShow 19:30` cue list: Audio cue announcements and a cleanup cue |
 | **CANCEL** | Deletes the list and clears the stored time |
 
-The announcements fire themselves at wall clock times. Nobody presses GO. At show time the cleanup cue deletes the list.
+The announcements are triggered by wall clock times. At show time or otherwise configured, the cleanup cue deletes the list.
 
-There is **no default show time**. Until someone picks one, BUILD refuses.
+There is **no default show time**.
 
-## Before you start
+## Requirements
 
-You need:
-
-- A QLab 5 **licence**. Script cues do not run in the free tier, and this system is built on them.
-- The QLab workspace you will actually use in the show.
-- Companion running, either on the QLab Mac or on a machine that can reach it.
-- An admin login on the Mac, for Login Items and the Terminal commands in Part 8.
+- A QLab 5 **licence** to be able to use scripts
+- The QLab workspace you will use for the shows.
+- Companion
+- Admin login to set Login Items and the Terminal commands in Part 8.
 
 ---
 
 ## Part 1 - Prepare the audio
 
-1. Gather your announcement audio. As shipped the schedule uses three files: Welcome, 5 Minute Call and Final Call. A fourth, a 10 minute call, is set up in the config but not in the schedule, ready if you want it.
-2. Put them somewhere permanent and local. **Not** a network share, not a folder that gets cleared. Something like `/Users/qlab/Show Audio/Announcements/`.
-3. Play each one in QLab by hand, to check it routes to the right outputs.
-
-Do not carry on until all four play correctly. Everything after this assumes the audio itself is fine.
+1. Collect announcement audio. Schedule has options for four files: Welcome, 10 minute call, 5 Minute Call and Final Call. If there is a call you don't use, don't provide a directory.
+2. Put them somewhere permanent and local. **Not** a network share or folder that gets easily cleared. Something like `/Users/qlab/Show Audio/Announcements/`.
+3. Make sure each files plays in qLab by making a standard audio cue to test and to check it routes to the right outputs. This script only supports a output through routing audio in channel 1 and 2. 
 
 ## Part 2 - Set up the script
 
 1. Copy `PreShowAnnouncements.applescript` onto the QLab Mac, into `/Users/qlab/Scripts/`.
 2. Open it in **Script Editor**.
 3. Find the four file paths at the top. Replace each one with your own. Drag an audio file into the Script Editor window to get its exact path, then paste it between the quotes.
-4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. Leave them at `0` for now. You can balance them once you have heard the announcements in the house.
-5. Look at the schedule below the settings. It lists when each call plays, counted back from the show time. As shipped: Welcome at T-60, T-50, T-40, T-30 and T-20, the 5 minute call at T-10 and T-8, and the Final Call at T-5, T-3 and T-1. Change it now if that is not your running order.
+4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. These can be set later if alterations need to be made.
+5. Look at the schedule below the settings. It lists when each call plays, counted back from the show time. Feel free to change it to match your pre-show announcement timings.
 6. Press **Command K** to compile.
 
 It must compile with no errors before you go on. If it does not, the error will point at the line, and it is almost always a quote mark missing from a path.
 
 ## Part 3 - Test the script by hand
 
-This proves the script and QLab work together, before Companion is anywhere near it.
-
-1. Open your QLab workspace. Make sure it is the frontmost window.
+1. Open your QLab workspace. Make sure it is the main window.
 2. Go back to Script Editor and press **Run**.
 3. macOS will ask whether Script Editor may control QLab. Click **OK**. Miss this dialog and nothing works. See Part 9.
 4. When it asks for a show time, enter one about **four minutes from now**.
 5. You should get a summary dialog listing what it built.
 
-Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding one audio cue per row of the schedule, 10 as shipped, and a cleanup cue. Each is named with the time it fires.
+Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding one audio cue per row of the schedule and a cleanup cue. Each is named with the time it fires.
 
 6. Click one of the cues and open the **Triggers** tab. The **Wall Clock** box should be ticked, with the right time next to it.
 7. Open the same cue's **Levels** tab. The master, left and right faders should read what you set in the config. If left or right did not take, the summary dialog will have said so.
-8. Wait. The T-1 cue should fire on its own, with no GO. At show time the list should delete itself.
+8. At show time or as configured, the list should delete itself.
 
 If the wall clock boxes are not ticked, the summary dialog will have said so. Tick one by hand, then check the property name against QLab's dictionary, via *File > Open Dictionary* in Script Editor.
 
@@ -123,13 +109,13 @@ Leave **Run in separate process** ticked on both Script cues. That is QLab's def
 
 `PSTIME` holds the show time in its name. `PSBUILD` reads it and builds. `PSCLEAR` clears everything. `PSOK` and `PSFAIL` are started by the script to say how the build went.
 
-A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not tick, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
+A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not enable, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
 
 Both are stopped before either is started, when CANCEL is pressed, and by the cleanup cue at show time. So a cue that loops, or one that holds a light or a button colour on, will not run into the performance. That also means they are safe to build as looping cues if a steady indicator suits the control position better than a one-shot.
 
 ## Part 6 - Test the control cues
 
-Still no Companion. You are checking QLab can drive the script on its own.
+*Developer's note - Why am I still here, it's 4am on a Sunday night. Reading my own code and writing up how it works, this isn't fun. There may be a few mistakes...probably......you'll figure it out :-)*
 
 1. Rename `PSTIME` to `SHOW TIME 19:30`, using a time a few minutes ahead.
 2. GO `PSBUILD`. The temporary cue list should appear.
@@ -158,7 +144,9 @@ It waits up to five minutes for QLab to open a workspace, so it does not matter 
 
 ## Part 8 - Set up the Mac to run unattended
 
-Four things have to be true, or the system will not survive a restart.
+*Developer's Note - Lucky for me, our system already does all this with our existing qLab system...WOOOOOOOOOOOOOOOOOO*
+
+Four things have to be true or the pre-show system will not survive a restart.
 
 **1. The Mac logs in on its own.**
 *System Settings > Users & Groups > Automatically log in as.*
@@ -184,7 +172,7 @@ Last, in QLab: *Workspace Settings > OSC* must have **OSC controls enabled**. No
 
 ## Part 9 - Check automation permissions
 
-This is the commonest cause of "it worked yesterday and not today". Three separate approvals are needed, each granted by clicking a dialog once:
+If things are skipped, might not work another time so check all of these. Ta.
 
 - Script Editor controlling QLab (Part 3)
 - QLab controlling QLab, meaning the Script cues (Part 6)
@@ -192,11 +180,11 @@ This is the commonest cause of "it worked yesterday and not today". Three separa
 
 Open *System Settings > Privacy & Security > Automation*. All three should be listed with QLab underneath, switched on.
 
-**Renaming or moving `PreShow.scpt` or the purge app resets its permission.** Run it by hand again after any move.
+**Renaming or moving `PreShow.scpt` or the purge app resets its permission.** Run them after any move.
 
 ## Part 10 - Set up Companion
 
-Everything Companion talks to now works. This part just puts buttons on it.
+Everything Companion talks to now works. Now we get to make the buttons! Yay!
 
 ### Step 1 - The connection
 
@@ -219,32 +207,33 @@ Set both to **not persist**. A Companion restart then leaves them blank, so nobo
 | **BUILD** | 1. qlabfb custom OSC to `/cue/PSTIME/name`, string arg `$(custom:showHour):$(custom:showMinute)`<br>2. `wait 250 ms`<br>3. qlabfb custom OSC to `/cue/PSBUILD/start` |
 | **CANCEL** | qlabfb custom OSC to `/cue/PSCLEAR/start` |
 
-The two OSC messages on BUILD must arrive in order: the name is set, then the build cue reads it. That is what the 250 ms wait is for.
+The two OSC messages on BUILD must arrive in order: the name is set and then the build cue reads it. That is why there is a 250 ms wait.
 
 Set NEW SHOW's button text to:
 ```
 NEW SHOW
 $(custom:showHour):$(custom:showMinute)
 ```
-so the Stream Deck always shows the time selected.
+so the Stream Deck shows what time you have selected.
 
 ### Step 4 - Page 11, SELECT HOUR
 
-24 buttons. Each one does two things:
+Make 24 buttons, each is an hour so set the "showHour` = `"18"" to the hour number. Or however many buttons with the range you want. Idk, probably like 11 to 21?
+Each does two things:
 1. `internal: Custom Variable Set Value` to `showHour` = `"18"`
 2. `internal: Set surface page` to 12
 
 ### Step 5 - Page 12, SELECT MINUTE
 
-12 buttons, at five minute steps. Each one does two things:
+12 buttons, at five minute steps. Same as above. Each does two things:
 1. `internal: Custom Variable Set Value` to `showMinute` = `"30"`
 2. `internal: Set surface page` to 10
 
-> **Pad the values.** Enter `"07"` and `"05"`, not `7` and `5`. Companion *can* pad with expressions, but typing two character strings rules out `19:5` faults for no effort.
+> **Pad the values.** Enter `"07"` and `"05"`, not `7` and `5`. Companion *can* pad with expressions but typing two characters rules out `19:5` faults, which are annoying af.
 
 ## Part 11 - Full dress test
 
-Do the whole thing once, start to finish, on a day with no show.
+It's just like a dress rehearsal! We love those....right? I'm getting delierious.
 
 1. Restart the Mac. Do not touch anything. Check it logs in, QLab opens the workspace, and `PSTIME` reads `SHOW TIME - not set`.
 2. Press **BUILD** without picking a time. Nothing should be built, `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, and `PSFAIL` should fire.
@@ -255,7 +244,7 @@ Do the whole thing once, start to finish, on a day with no show.
 7. If `PSOK` or `PSFAIL` holds rather than plays once, build again and let the cleanup cue run at show time. It should stop both before it deletes the list.
 8. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
 
-Step 8 is the one that proves you are safe on a cancelled show. Do not skip it.
+Step 8 is the one that proves you are safe on a cancelled show. Do not skip it, or I'll steal your gaffa tape.
 
 ---
 
@@ -271,6 +260,8 @@ If the show time moves, pick the new time and press BUILD again. It deletes and 
 ---
 
 ## Troubleshooting
+
+Hopefully these things help.
 
 | Symptom | Likely cause |
 |---|---|
@@ -319,10 +310,6 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | `kCleanupAction` | Configuration | What the cleanup does to the list | `"delete"` removes it, `"disarm"` keeps it and marks it `[DONE]` |
 | `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour, level}`. Add, remove or reorder freely |
 
-Colour names must match the ones QLab offers in the cue inspector. `"none"` leaves a cue uncoloured.
+Colour names must match the ones QLab offers in the cue inspector. `"none"` leaves a cue uncoloured. Options: red, orange, green, blue, purple and none
 
 Levels are written to the cue on every build, so the config always wins. Left and right are the crosspoints for a stereo file on default routing. A mono file has no right channel, so the summary will report that one as failed and you can ignore it.
-
----
-
-**None of this has been tested on a live QLab 5 system.** The script was written from QLab's published AppleScript and OSC dictionaries, but has never been run. Work through Parts 3, 6 and 11 properly on a non-show day before trusting it with an audience in the building.
