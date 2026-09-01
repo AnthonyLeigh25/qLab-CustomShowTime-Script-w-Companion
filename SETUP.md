@@ -283,6 +283,7 @@ Hopefully these things help.
 | Nothing fires overnight | The Mac slept (Part 8.3), or the workspace was not open |
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
+| Cleanup fires but the list is still there | Look at `PSTIME`'s notes. The cleanup writes the reason there, and renames the list `[NOT DELETED]` so it cannot be missed. The list is disarmed either way, so nothing fires again |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
 | `-1752 the script does not seem to belong to AppleScript` | The `.scpt` is not a compiled script. Re-export with File Format: Script, see Part 4 |
 | `-2753 the variable b is not defined` | The Script cue is using the old two line loader. Use the single line in Part 5 |
