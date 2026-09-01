@@ -296,8 +296,8 @@ on buildPreShow(showTimeText)
 		tell front workspace
 
 			-- Check the list was made. Every cue below is moved into it.
-			make type "Cue List"
-			set theList to last cue list
+			set theList to make type "Cue List"
+			if theList is missing value then set theList to last cue list
 			set q name of theList to listName
 			if (q name of theList) is not listName then ¬
 				error "Could not create or name the new cue list."
@@ -307,8 +307,7 @@ on buildPreShow(showTimeText)
 
 			-- A memo at the top, so the show time is readable
 			if kAddMemoCue then
-				make type "Memo"
-				set memoCue to last item of (selected as list)
+				set memoCue to my newCue("Memo")
 				set q name of memoCue to ("SHOW AT " & showTimeText & ¬
 					"  -  delete this cue list after the show")
 				set q color of memoCue to kFinalColour
@@ -334,8 +333,7 @@ on buildPreShow(showTimeText)
 				set fireText to my hhmmssFromSeconds(fireSecs)
 				set cueIndex to cueIndex + 1
 
-				make type "Audio"
-				set theCue to last item of (selected as list)
+				set theCue to my newCue("Audio")
 
 				-- Leads with the fire time so the list reads as a running order, hopefully.
 				set q name of theCue to (fireText & "  -  " & baseName & ¬
@@ -396,8 +394,7 @@ on buildPreShow(showTimeText)
 						(kCleanupOffsetMinutes * 60))
 					set cleanupText to my hhmmssFromSeconds(cleanupSecs)
 
-					make type "Script"
-					set cleanupCue to last item of (selected as list)
+					set cleanupCue to my newCue("Script")
 
 					set script source of cleanupCue to ¬
 						my cleanupScriptSource(listName)
@@ -733,6 +730,29 @@ on cleanupScriptSource(listName)
 		"end tell"
 end cleanupScriptSource
 
+
+-- Make a cue and hand back a reference to it.
+--
+-- QLab's make returns the new cue, which is the reliable way to get hold of
+-- it. Reading it back out of the selection instead fails whenever QLab does
+-- not select what it just made, and "last item of {}" raises -1728 rather
+-- than anything that explains itself. The selection is kept only as a
+-- fallback for a QLab version that returns nothing.
+on newCue(theType)
+	tell application id "com.figure53.QLab.5"
+		tell front workspace
+			set theCue to make type theType
+			if theCue is missing value then
+				set sel to (selected as list)
+				if (count of sel) is 0 then error ¬
+					("QLab made no " & theType & " cue, or would not say " & ¬
+						"which one. Nothing was built.")
+				set theCue to last item of sel
+			end if
+			return theCue
+		end tell
+	end tell
+end newCue
 
 -- Send a cue to an output patch. Returns true if it took, and true without
 -- doing anything for a patch of 0, which means leave the workspace default
