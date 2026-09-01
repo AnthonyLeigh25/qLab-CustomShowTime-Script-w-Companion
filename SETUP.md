@@ -59,8 +59,18 @@ If the wall clock boxes are not ticked, the summary dialog will have said so. Ti
 QLab, the Login Item and Script Editor all load this one file. One copy means there is no second version to keep in step.
 
 1. In Script Editor: **File > Export**
-2. File Format: **Script**
+2. **File Format: Script.** Not Text, not Application. This is the setting everything depends on
 3. Save as `/Users/qlab/Scripts/PreShow.scpt`
+
+Check it worked before going on. In Terminal:
+
+```bash
+file /Users/qlab/Scripts/PreShow.scpt
+```
+
+It should say **AppleScript compiled**. If it says text of any kind, the export used the wrong format and nothing that loads it will work.
+
+Two things that look like exporting and are not. **Command S only saves the source**, still as plain text, and **Export with File Format: Text** produces a readable file `load script` will refuse. Both give `-1752, the script does not seem to belong to AppleScript` when a cue tries to load it.
 
 Edit the `.applescript` later and you must **export it again**, or QLab carries on running the old version.
 
@@ -274,6 +284,9 @@ Hopefully these things help.
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
+| `-1752 the script does not seem to belong to AppleScript` | The `.scpt` is not a compiled script. Re-export with File Format: Script, see Part 4 |
+| `-2753 the variable b is not defined` | The Script cue is using the old two line loader. Use the single line in Part 5 |
+| `-1728 can't get last item of {}` | An old copy of `PreShow.scpt`. Compile and export again |
 | Neither `PSOK` nor `PSFAIL` fires | The cues are missing, disarmed, or their numbers do not match `kBuildOKCue` and `kBuildFailCue` |
 | A feedback cue is still running during the show | The cleanup cue did not run, so nothing stopped it. Same cause as a list left behind |
 
