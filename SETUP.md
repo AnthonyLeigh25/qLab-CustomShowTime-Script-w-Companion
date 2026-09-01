@@ -283,7 +283,8 @@ Hopefully these things help.
 | Nothing fires overnight | The Mac slept (Part 8.3), or the workspace was not open |
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
-| Cleanup fires but the list is still there | Look at `PSTIME`'s notes. The cleanup writes the reason there, and renames the list `[NOT DELETED]` so it cannot be missed. The list is disarmed either way, so nothing fires again |
+| Cleanup fires but the list is still there | The cues are gone even if the list is not, so nothing can fire again. The list is renamed `[DONE] Temp-PreShow ...` and `PSTIME`'s notes carry QLab's own reason |
+| An empty `[DONE]` list is left behind each show | `delete cue list` was refused. Harmless, the cues are gone. Delete the empty lists by hand when they build up |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
 | `-1752 the script does not seem to belong to AppleScript` | The `.scpt` is not a compiled script. Re-export with File Format: Script, see Part 4 |
 | `-2753 the variable b is not defined` | The Script cue is using the old two line loader. Use the single line in Part 5 |
@@ -331,4 +332,4 @@ Colour names must match the ones QLab offers in the cue inspector. `"none"` leav
 
 The patch and the levels are written to the cue on every build, so the config always wins. Levels go on after the patch, because changing either the file or the patch rebuilds a cue's level matrix.
 
-Left and right are the crosspoints for a stereo file on default routing. A mono file has no right channel, so the summary will report that one as failed and you can ignore it. A patch that will not set leaves the cue on the workspace default, which is audible somewhere rather than silent, so that one is reported but does not fail the build.
+Left and right are the first and second outputs of the patch, the same faders the Levels tab shows next to the master. Row 0 of the level matrix holds the master and the output levels, so a patch with only one output will report the second as failed, which you can ignore. A patch that will not set leaves the cue on the workspace default, which is audible somewhere rather than silent, so that one is reported but does not fail the build.
