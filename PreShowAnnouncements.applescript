@@ -860,17 +860,17 @@ on applyLevels(theCue, theLevel)
 	set allSet to true
 	tell application id "com.figure53.QLab.5"
 		try
-			tell theCue to setLevel row 0 column 0 db (item 1 of theLevel)
+			setLevel theCue row 0 column 0 db (item 1 of theLevel)
 		on error
 			set allSet to false
 		end try
 		try
-			tell theCue to setLevel row 1 column 1 db (item 2 of theLevel)
+			setLevel theCue row 0 column 1 db (item 2 of theLevel)
 		on error
 			set allSet to false
 		end try
 		try
-			tell theCue to setLevel row 2 column 2 db (item 3 of theLevel)
+			setLevel theCue row 0 column 2 db (item 3 of theLevel)
 		on error
 			set allSet to false
 		end try
