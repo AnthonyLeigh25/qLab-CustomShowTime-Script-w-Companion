@@ -681,23 +681,30 @@ end nameOfList
 
 -- Delete a cue list. Returns true if the list itself went.
 --
--- Only cues respond to delete, not cue lists.
+-- A cue list can only be deleted as an element of the workspace, addressed by
+-- name, index or id. 
 on deleteList(theList)
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
+			set doomedName to ""
+			try
+				set doomedName to q name of theList
+			end try
 			try
 				delete (every cue of theList)
 			end try
-			try
-				delete theList
-				return true
-			end try
-			-- The list will not go. Disarm it, and put the marker on the
-			-- front of the name so it no longer starts with the prefix and
-			-- findExistingList stops handing it back.
+			if doomedName is not "" then
+				try
+					delete cue list doomedName
+					return true
+				end try
+			end if
+			-- It would not go. Disarm it and put the marker on the front of
+			-- the name, so nothing fires and findExistingList stops handing
+			-- it back.
 			try
 				set armed of theList to false
-				set q name of theList to ("[DONE] " & (q name of theList))
+				set q name of theList to ("[DONE] " & doomedName)
 			end try
 		end tell
 	end tell
@@ -754,7 +761,7 @@ on cleanupScriptSource(listName)
 	else
 		set theAction to "                        delete (every cue of TL)" & LF
 		set theAction to theAction & "                        try" & LF
-		set theAction to theAction & "                            delete TL" & LF
+		set theAction to theAction & "                            delete cue list " & qt & listName & qt & LF
 		set theAction to theAction & "                        end try"
 	end if
 
@@ -799,7 +806,6 @@ on cleanupScriptSource(listName)
 		"                        set why to errMsg" & LF & ¬
 		"                        try" & LF & ¬
 		"                            set armed of TL to false" & LF & ¬
-				"                            set q name of TL to (" & qt & �
 				"                            set q name of TL to (" & qt & "[DONE] " & qt & " & (q name of TL))" & LF & 
 		"                    end try" & LF & ¬
 		"                    exit repeat" & LF & ¬
