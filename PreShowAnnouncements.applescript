@@ -295,8 +295,22 @@ on buildPreShow(showTimeText)
 		tell front workspace
 
 			-- Check the list was made. Every cue below is moved into it.
-			set theList to make type "Cue List"
-			if theList is missing value then set theList to last cue list
+			--
+			-- theList is given a value before the make, not by it. A command
+			-- that returns nothing leaves the variable undefined rather than
+			-- empty, and the next line to touch it raises -2753 instead of
+			-- anything that explains itself.
+			set theList to missing value
+			try
+				set theList to make type "Cue List"
+			end try
+			if theList is missing value then
+				try
+					set theList to last cue list
+				end try
+			end if
+			if theList is missing value then ¬
+				error "QLab would not make a new cue list. Nothing was built."
 			set q name of theList to listName
 			if (q name of theList) is not listName then ¬
 				error "Could not create or name the new cue list."
@@ -790,7 +804,13 @@ end cleanupScriptSource
 on newCue(theType)
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
-			set theCue to make type theType
+			-- Same reason as the cue list above: assign first, so a make that
+			-- hands nothing back leaves an empty variable and not a missing
+			-- one.
+			set theCue to missing value
+			try
+				set theCue to make type theType
+			end try
 			if theCue is missing value then
 				set sel to (selected as list)
 				if (count of sel) is 0 then error ¬
