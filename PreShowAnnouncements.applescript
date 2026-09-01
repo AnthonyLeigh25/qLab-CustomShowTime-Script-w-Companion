@@ -286,6 +286,16 @@ on buildPreShow(showTimeText)
 	set cleanupMade to false
 	set cleanupError to ""
 
+	-- The schedule is edited by hand, so check its shape before building
+	-- anything. A short row would otherwise fail deep in the loop with a
+	-- "can't get item 6" and half a cue list already made.
+	repeat with i from 1 to count of theSchedule
+		if (count of (item i of theSchedule)) < 6 then error ("Row " & i & ¬
+			" of the schedule has " & (count of (item i of theSchedule)) & ¬
+			" items. Each row needs 6: minutes, name, file, colour, level, " & ¬
+			"patch.")
+	end repeat
+
 	warnAboutMissingFiles(theSchedule)
 
 	tell application id "com.figure53.QLab.5"
@@ -844,6 +854,9 @@ end applyPatch
 -- at 2/2. Each is tried on its own, so a mono file still gets its master and
 -- left set rather than failing outright.
 on applyLevels(theCue, theLevel)
+	-- A level edited down to two numbers would fail on item 3 rather than
+	-- say so, and the summary would blame the cue instead of the config.
+	if (count of theLevel) < 3 then return false
 	set allSet to true
 	tell application id "com.figure53.QLab.5"
 		try
