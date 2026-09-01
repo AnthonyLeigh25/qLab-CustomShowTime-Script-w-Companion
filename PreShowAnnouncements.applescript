@@ -22,23 +22,31 @@
 
 -- ============================ CONFIGURATION ==================================
 
--- Audio files locations, and the level each one plays at.
+-- Audio file locations, the output patch each one uses, and the level it
+-- plays at.
 --
 -- Levels are {master, left, right} in dB, range is -120(-INF) to +12.
 --
 -- Left and right are the crosspoints for a stereo file on default routing.
+--
+-- Patch is the number of a QLab audio output patch, so 1 is the first one in
+-- Workspace Settings > Audio. Use 0 to leave a cue on the workspace default.
 property kWelcomeFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-concert FOH areas no mask .wav"
+property kWelcomePatch : 1
 property kWelcomeLevel : {0, 0, -10}
 
 -- Spare. Not in the schedule at the moment, kept for when a 10 minute call
 -- is wanted again. An unused property costs nothing.
 property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
+property kTenMinPatch : 1
 property kTenMinLevel : {0, 0, 0}
 
 property kFiveMinFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-Event 5 Mins Photography Permitted.wav"
+property kFiveMinPatch : 1
 property kFiveMinLevel : {0, 0, -11}
 
 property kFinalCallFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-EVENT final call.wav"
+property kFinalCallPatch : 1
 property kFinalCallLevel : {0, 0, -17}
 
 -- There is no default show time. The time is either typed into
@@ -95,20 +103,21 @@ property kCleanupOffsetMinutes : -2
 --             see what ran.
 property kCleanupAction : "delete"
 
--- The schedule: {minutes before show, cue name, audio file, colour, level}.
+-- The schedule: {minutes before show, cue name, audio file, colour, level,
+-- patch}.
 -- Add, remove or reorder rows and the rest of the script follows.
 on announcementSchedule()
 	return {¬
-		{60, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{50, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{40, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{30, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{20, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel}, ¬
-		{10, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel}, ¬
-		{8, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel}, ¬
-		{5, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
-		{3, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}, ¬
-		{1, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel}}
+		{60, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel, kWelcomePatch}, ¬
+		{50, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel, kWelcomePatch}, ¬
+		{40, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel, kWelcomePatch}, ¬
+		{30, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel, kWelcomePatch}, ¬
+		{20, "Welcome Message", kWelcomeFile, kWelcomeColour, kWelcomeLevel, kWelcomePatch}, ¬
+		{10, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel, kFiveMinPatch}, ¬
+		{8, "5 Minute Call", kFiveMinFile, kCallColour, kFiveMinLevel, kFiveMinPatch}, ¬
+		{5, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel, kFinalCallPatch}, ¬
+		{3, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel, kFinalCallPatch}, ¬
+		{1, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel, kFinalCallPatch}}
 end announcementSchedule
 
 -- =========================== END CONFIGURATION ===============================
@@ -271,6 +280,7 @@ on buildPreShow(showTimeText)
 	set numberClashes to {}
 	set triggerFailures to {}
 	set levelFailures to {}
+	set patchFailures to {}
 	set missingFiles to {}
 	set crossesMidnight to {}
 	set reportLines to {}
@@ -313,6 +323,7 @@ on buildPreShow(showTimeText)
 				set thePath to item 3 of theRow
 				set theColour to item 4 of theRow
 				set theLevel to item 5 of theRow
+				set thePatch to item 6 of theRow
 
 				-- An early call for a lunchtime show falls the night before. The
 				-- trigger is happy, it is a time of day and not a date, but say so.
@@ -341,8 +352,11 @@ on buildPreShow(showTimeText)
 				-- build. The path is in the notes and the summary lists them.
 				if my fileExists(thePath) then
 					set file target of theCue to POSIX file thePath
-					-- Levels go on after the file target. Assigning a target
-					-- rebuilds the level matrix and would throw them away.
+					-- Patch first, then levels. Both a new file target and a
+					-- new patch rebuild the level matrix, so anything set
+					-- before them is thrown away.
+					if not my applyPatch(theCue, thePatch) then ¬
+						set end of patchFailures to fireText
 					if not my applyLevels(theCue, theLevel) then ¬
 						set end of levelFailures to fireText
 				else
@@ -466,6 +480,11 @@ on buildPreShow(showTimeText)
 		set summary to summary & return & "WARNING: could not tick the wall " & ¬
 			"clock checkbox on: " & my joinList(triggerFailures, " ") & ¬
 			return & "Enable it by hand in the Triggers tab." & return
+	end if
+	if (count of patchFailures) > 0 then
+		set summary to summary & return & "WARNING: could not set the output " & ¬
+			"patch on: " & my joinList(patchFailures, " ") & return & ¬
+			"Those cues are on the workspace default patch." & return
 	end if
 	if (count of levelFailures) > 0 then
 		set summary to summary & return & "WARNING: could not set every " & ¬
@@ -714,6 +733,20 @@ on cleanupScriptSource(listName)
 		"end tell"
 end cleanupScriptSource
 
+
+-- Send a cue to an output patch. Returns true if it took, and true without
+-- doing anything for a patch of 0, which means leave the workspace default
+-- alone.
+on applyPatch(theCue, thePatch)
+	if thePatch is 0 then return true
+	tell application id "com.figure53.QLab.5"
+		try
+			set patch of theCue to thePatch
+			return true
+		end try
+	end tell
+	return false
+end applyPatch
 
 -- Set a cue's master, left and right levels. Returns true if all three took.
 --

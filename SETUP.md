@@ -32,7 +32,7 @@ There is **no default show time**.
 1. Copy `PreShowAnnouncements.applescript` onto the QLab Mac, into `/Users/qlab/Scripts/`.
 2. Open it in **Script Editor**.
 3. Find the four file paths at the top. Replace each one with your own. Drag an audio file into the Script Editor window to get its exact path, then paste it between the quotes.
-4. Under each path is a level, written as `{0, 0, 0}`. Those are master, left and right in dB. These can be set later if alterations need to be made.
+4. Under each path is a patch and a level. The patch is which QLab audio output the cue plays through, numbered as in *Workspace Settings > Audio*, so `1` is the first. Use `0` to leave a cue on the workspace default. The level is `{master, left, right}` in dB. Both can be set later if alterations need to be made.
 5. Look at the schedule below the settings. It lists when each call plays, counted back from the show time. Feel free to change it to match your pre-show announcement timings.
 6. Press **Command K** to compile.
 
@@ -49,7 +49,7 @@ It must compile with no errors before you go on. If it does not, the error will 
 Now check QLab. You should see a new cue list called `Temp-PreShow HH:MM` holding one audio cue per row of the schedule and a cleanup cue. Each is named with the time it fires.
 
 6. Click one of the cues and open the **Triggers** tab. The **Wall Clock** box should be ticked, with the right time next to it.
-7. Open the same cue's **Levels** tab. The master, left and right faders should read what you set in the config. If left or right did not take, the summary dialog will have said so.
+7. Open the same cue's **Audio** tab. The output patch should be the one you set, and on the **Levels** tab the master, left and right faders should read what you set in the config. Anything that did not take is named in the summary dialog.
 8. At show time or as configured, the list should delete itself.
 
 If the wall clock boxes are not ticked, the summary dialog will have said so. Tick one by hand, then check the property name against QLab's dictionary, via *File > Open Dictionary* in Script Editor.
@@ -287,12 +287,16 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | Code line | Section | What it is | Options |
 |---|---|---|---|
 | `kWelcomeFile` | Configuration | Audio file for the welcome message | Any full POSIX path in quotes |
+| `kWelcomePatch` | Configuration | Audio output patch for the welcome cues | A patch number as listed in Workspace Settings > Audio. `0` leaves the workspace default |
 | `kWelcomeLevel` | Configuration | Output level of the welcome cues | `{master, left, right}` in dB. `0` is unity, `+12` the maximum, `-120` silence |
 | `kTenMinFile` | Configuration | Audio file for a 10 minute call. Spare, not in the schedule as shipped | Any full POSIX path in quotes |
+| `kTenMinPatch` | Configuration | Audio output patch for the 10 minute call. Spare, as above | A patch number, or `0` for the workspace default |
 | `kTenMinLevel` | Configuration | Output level of the 10 minute call. Spare, as above | `{master, left, right}` in dB, as above |
 | `kFiveMinFile` | Configuration | Audio file for the 5 minute call | Any full POSIX path in quotes |
+| `kFiveMinPatch` | Configuration | Audio output patch for the 5 minute call | A patch number, or `0` for the workspace default |
 | `kFiveMinLevel` | Configuration | Output level of the 5 minute call | `{master, left, right}` in dB, as above |
 | `kFinalCallFile` | Configuration | Audio file for the final call | Any full POSIX path in quotes |
+| `kFinalCallPatch` | Configuration | Audio output patch for the final call cues | A patch number, or `0` for the workspace default |
 | `kFinalCallLevel` | Configuration | Output level of the final call cues | `{master, left, right}` in dB, as above |
 | `kNoTimeText` | Configuration | Name the control cue resets to when no time is set | Any text, as long as it contains nothing that reads as a time |
 | `kShowTimeCueNumber` | Companion integration | Cue number of the control cue Companion writes the time into | Any cue number, or `""` to turn Companion control off |
@@ -308,8 +312,10 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | `kAddCleanupCue` | Configuration | Adds the cue that clears the list at show time | `true` or `false`. Only turn off if you will delete the list by hand |
 | `kCleanupOffsetMinutes` | Configuration | When the cleanup runs, in minutes before the show | Any whole number. `0` is show time, `-5` is five minutes after it |
 | `kCleanupAction` | Configuration | What the cleanup does to the list | `"delete"` removes it, `"disarm"` keeps it and marks it `[DONE]` |
-| `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour, level}`. Add, remove or reorder freely |
+| `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour, level, patch}`. Add, remove or reorder freely |
 
 Colour names must match the ones QLab offers in the cue inspector. `"none"` leaves a cue uncoloured. Options: red, orange, green, blue, purple and none
 
-Levels are written to the cue on every build, so the config always wins. Left and right are the crosspoints for a stereo file on default routing. A mono file has no right channel, so the summary will report that one as failed and you can ignore it.
+The patch and the levels are written to the cue on every build, so the config always wins. Levels go on after the patch, because changing either the file or the patch rebuilds a cue's level matrix.
+
+Left and right are the crosspoints for a stereo file on default routing. A mono file has no right channel, so the summary will report that one as failed and you can ignore it. A patch that will not set leaves the cue on the workspace default, which is audible somewhere rather than silent, so that one is reported but does not fail the build.
