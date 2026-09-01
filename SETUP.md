@@ -80,8 +80,7 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - Name: `BUILD PRE-SHOW`
 - Script:
   ```applescript
-  set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
-  tell b to buildFromQLabCue()
+  tell (load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")) to buildFromQLabCue()
   ```
 
 **3. Script cue**
@@ -89,8 +88,7 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - Name: `CANCEL PRE-SHOW`
 - Script:
   ```applescript
-  set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
-  tell b to clearPreShow()
+  tell (load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")) to clearPreShow()
   ```
 
 **4. Build succeeded cue**
@@ -104,6 +102,8 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - Name: `BUILD FAILED`
 - **Arm it.**
 - Same idea, but for a failure. A red button or a different sound.
+
+One line, not two. Loading into a variable and then telling that variable works in Script Editor, but a Script cue that loses the first line leaves you with `The variable b is not defined` and no clue why. One statement cannot half run.
 
 Leave **Run in separate process** ticked on both Script cues. That is QLab's default.
 
@@ -133,8 +133,7 @@ QLab autosaves, so a list built today is written to disk. If the show is cancell
 
 1. In Script Editor, open a new document and paste these two lines:
    ```applescript
-   set b to load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")
-   tell b to purgeOnLaunch()
+   tell (load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")) to purgeOnLaunch()
    ```
 2. **File > Export**, File Format: **Application**, saved as `/Users/qlab/Scripts/PreShow Purge.app`
 3. **Run it once by hand now.** macOS will ask whether it may control QLab. Click OK. This approval cannot be given on an unattended restart, so it has to happen here.

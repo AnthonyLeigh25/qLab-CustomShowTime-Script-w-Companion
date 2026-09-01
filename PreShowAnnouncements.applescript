@@ -158,8 +158,7 @@ end run
 -- Export this as a compiled script (file > export > script), then have a
 -- QLab script cue load it and call one of these:
 --
---     set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
---     tell b to buildFromQLabCue()
+--     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to buildFromQLabCue()
 --
 -- None of these show a dialog, so a button press cannot block mid-show.
 -- The full wiring is at the foot of this file.
@@ -1023,10 +1022,10 @@ end trimText
 --   PSTIME   memo cue.   Name: "SHOW TIME - not set"
 --                        Companion overwrites this name with the chosen time.
 --                        disarm it. it is a label, not something to play.
---   PSBUILD  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
---                        tell b to buildFromQLabCue()
---   PSCLEAR  script cue: set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
---                        tell b to clearPreShow()
+--   PSBUILD  script cue:
+--     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to buildFromQLabCue()
+--   PSCLEAR  script cue:
+--     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to clearPreShow()
 --
 -- Export this file via file > export > file format: script to that .scpt
 -- path. QLab, the login item and script editor then share one copy, so there
@@ -1036,8 +1035,7 @@ end trimText
 -- as an applet (file > export > file format: application) holding these two
 -- lines, then add it to login items:
 --
---   set b to load script (POSIX file "/Users/you/Scripts/PreShow.scpt")
---   tell b to purgeOnLaunch()
+--   tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to purgeOnLaunch()
 --
 -- This is required, not optional. QLab autosaves, so a list built yesterday
 -- is on disk and would come back armed today.
