@@ -806,7 +806,7 @@ on cleanupScriptSource(listName)
 		"                        set why to errMsg" & LF & ¬
 		"                        try" & LF & ¬
 		"                            set armed of TL to false" & LF & ¬
-		"                            set q name of TL to (" & qt & "[DONE] " & qt & " & (q name of TL))" & LF & �
+		"                            set q name of TL to (" & qt & "[DONE] " & qt & " & (q name of TL))" & LF & ¬
 		"                    end try" & LF & ¬
 		"                    exit repeat" & LF & ¬
 		"                end if" & LF & ¬
