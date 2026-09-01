@@ -751,12 +751,11 @@ on cleanupScriptSource(listName)
 			"                        set armed of TL to false" & LF & Â¬
 			"                        set q name of TL to ((q name of TL) & " & Â¬
 			qt & " [DONE]" & qt & ")"
-		else
-		set theAction to Â
-			"                        delete (every cue of TL)" & LF & Â
-			"                        try" & LF & Â
-			"                            delete TL" & LF & Â
-			"                        end try"
+	else
+		set theAction to "                        delete (every cue of TL)" & LF
+		set theAction to theAction & "                        try" & LF
+		set theAction to theAction & "                            delete TL" & LF
+		set theAction to theAction & "                        end try"
 	end if
 
 	-- Where to leave a note if this does not work. Running unattended, an
@@ -801,8 +800,7 @@ on cleanupScriptSource(listName)
 		"                        try" & LF & Â¬
 		"                            set armed of TL to false" & LF & Â¬
 				"                            set q name of TL to (" & qt & Â
-		"[DONE] " & qt & " & (q name of TL))" & LF & Â
-		"                        end try" & LF & Â¬
+				"                            set q name of TL to (" & qt & "[DONE] " & qt & " & (q name of TL))" & LF & 
 		"                    end try" & LF & Â¬
 		"                    exit repeat" & LF & Â¬
 		"                end if" & LF & Â¬
