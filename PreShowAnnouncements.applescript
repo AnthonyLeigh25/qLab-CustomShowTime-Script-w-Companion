@@ -22,11 +22,15 @@
 
 -- ============================ CONFIGURATION ==================================
 
+-- Version of this script. Major, minor, bug fix. Bumped henever a change
+-- is made. In the build summary, it states which copy QLab is
+-- running.
+property kScriptVersion : "1.6.3"
+
+
 -- Audio file locations, the output patch each one uses, and the level it
 -- plays at.
---
 -- Levels are {master, left, right} in dB, range is -120(-INF) to +12.
---
 -- Left and right are the crosspoints for a stereo file on default routing.
 --
 -- Patch is the number of a QLab audio output patch, so 1 is the first one in
@@ -119,6 +123,13 @@ on announcementSchedule()
 		{3, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel, kFinalCallPatch}, Â¬
 		{1, "Final Call", kFinalCallFile, kFinalColour, kFinalCallLevel, kFinalCallPatch}}
 end announcementSchedule
+
+
+-- Ask a loaded copy which version it is, without building anything:
+--     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to scriptVersion()
+on scriptVersion()
+	return kScriptVersion
+end scriptVersion
 
 -- =========================== END CONFIGURATION ===============================
 
@@ -461,7 +472,8 @@ on buildPreShow(showTimeText)
 	end tell
 
 	-- =========================== SUMMARY REPORTING ===============================
-	set summary to "Created cue list \"" & listName & "\" with " & builtCount & Â¬
+		set summary to "Pre-Show Announcements v" & kScriptVersion & return & Â
+		"Created cue list \"" & listName & "\" with " & builtCount & Â
 		" self-triggering announcement cues." & return & return
 	repeat with L in reportLines
 		set summary to summary & L & return
@@ -609,9 +621,9 @@ end findCueByNumber
 
 -- Put the result of a build in the control cue's notes
 on reportToControlCue(showTimeText, builtCount)
-	noteOnControlCue("Last build: " & builtCount & " cues for a " & Â¬
-		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & Â¬
-		showTimeText)
+	noteOnControlCue("Last build: " & builtCount & " cues for a " & Â
+		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & Â
+		showTimeText & return & "Script v" & kScriptVersion)
 end reportToControlCue
 
 on noteOnControlCue(theText)
