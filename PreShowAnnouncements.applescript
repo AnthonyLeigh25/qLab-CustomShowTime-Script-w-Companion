@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.6.3"
+property kScriptVersion : "1.6.5"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -35,7 +35,7 @@ property kScriptVersion : "1.6.3"
 --
 -- Patch is the number of a QLab audio output patch, so 1 is the first one in
 -- Workspace Settings > Audio. Use 0 to leave a cue on the workspace default.
-property kWelcomeFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-concert FOH areas no mask .wav"
+property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
 property kWelcomePatch : 1
 property kWelcomeLevel : {0, 0, -10}
 
@@ -45,11 +45,11 @@ property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kTenMinPatch : 1
 property kTenMinLevel : {0, 0, 0}
 
-property kFiveMinFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-Event 5 Mins Photography Permitted.wav"
+property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
 property kFiveMinPatch : 1
 property kFiveMinLevel : {0, 0, -11}
 
-property kFinalCallFile : "/Users/lphproduction/Desktop/FOH ANNOUNCEMENTS 27.06.26/audio/Pre-EVENT final call.wav"
+property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
 property kFinalCallPatch : 1
 property kFinalCallLevel : {0, 0, -17}
 
