@@ -37,7 +37,7 @@ property kScriptVersion : "1.6.5"
 -- Workspace Settings > Audio. Use 0 to leave a cue on the workspace default.
 property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
 property kWelcomePatch : 1
-property kWelcomeLevel : {0, 0, -10}
+property kWelcomeLevel : {0, 0, 0}
 
 -- Spare. Not in the schedule at the moment, kept for when a 10 minute call
 -- is wanted again. An unused property costs nothing.
@@ -47,11 +47,11 @@ property kTenMinLevel : {0, 0, 0}
 
 property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
 property kFiveMinPatch : 1
-property kFiveMinLevel : {0, 0, -11}
+property kFiveMinLevel : {0, 0, 0}
 
-property kFinalCallFile : "/Users/you/Show Audio/Announcements/Final Call.wav"
+property kFinalCallFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kFinalCallPatch : 1
-property kFinalCallLevel : {0, 0, -17}
+property kFinalCallLevel : {0, 0, 0}
 
 -- There is no default show time. The time is either typed into
 -- the dialog or sent from Companion. A missing or unreadable one stops the
@@ -99,7 +99,7 @@ property kAddCleanupCue : true
 
 -- Minutes before the show for the cleanup cue. 0 is show time itself. Use a
 -- negative number for after the show starts, so -5 is five minutes in.
-property kCleanupOffsetMinutes : -2
+property kCleanupOffsetMinutes : -1
 
 -- What the cleanup cue does:
 --   "delete"  removes the cue list. Cleanest.
@@ -309,6 +309,13 @@ on buildPreShow(showTimeText)
 
 	warnAboutMissingFiles(theSchedule)
 
+	-- Declared out here, not inside the tell blocks below. Inside a tell
+	-- block, "set x to missing value" is resolved against the application's
+	-- terminology and sent to QLab as an event, so no script variable is ever
+	-- created and reading it later raises -2753. Out here it is a plain local,
+	-- and assignments inside the tell block update it as expected.
+	set theList to missing value
+
 	tell application id "com.figure53.QLab.5"
 		if (count of workspaces) is 0 then ¬
 			error "No QLab workspace is open. Open your workspace and try again."
@@ -321,7 +328,6 @@ on buildPreShow(showTimeText)
 			-- that returns nothing leaves the variable undefined rather than
 			-- empty, and the next line to touch it raises -2753 instead of
 			-- anything that explains itself.
-			set theList to missing value
 			try
 				set theList to make type "Cue List"
 			end try
@@ -839,12 +845,12 @@ end cleanupScriptSource
 -- than anything that explains itself. The selection is kept only as a
 -- fallback for a QLab version that returns nothing.
 on newCue(theType)
+	-- Declared before the tell block, for the same reason as theList in
+	-- buildPreShow. A missing value assignment inside a tell block never
+	-- creates the variable.
+	set theCue to missing value
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
-			-- Same reason as the cue list above: assign first, so a make that
-			-- hands nothing back leaves an empty variable and not a missing
-			-- one.
-			set theCue to missing value
 			try
 				set theCue to make type theType
 			end try
