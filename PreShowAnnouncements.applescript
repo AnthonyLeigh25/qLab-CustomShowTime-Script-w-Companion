@@ -472,8 +472,8 @@ on buildPreShow(showTimeText)
 	end tell
 
 	-- =========================== SUMMARY REPORTING ===============================
-		set summary to "Pre-Show Announcements v" & kScriptVersion & return & Â
-		"Created cue list \"" & listName & "\" with " & builtCount & Â
+		set summary to "Pre-Show Announcements v" & kScriptVersion & return & Â¬
+		"Created cue list \"" & listName & "\" with " & builtCount & Â¬
 		" self-triggering announcement cues." & return & return
 	repeat with L in reportLines
 		set summary to summary & L & return
@@ -621,8 +621,8 @@ end findCueByNumber
 
 -- Put the result of a build in the control cue's notes
 on reportToControlCue(showTimeText, builtCount)
-	noteOnControlCue("Last build: " & builtCount & " cues for a " & Â
-		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & Â
+	noteOnControlCue("Last build: " & builtCount & " cues for a " & Â¬
+		showTimeText & " show." & return & "Cue list: " & kListPrefix & " " & Â¬
 		showTimeText & return & "Script v" & kScriptVersion)
 end reportToControlCue
 
