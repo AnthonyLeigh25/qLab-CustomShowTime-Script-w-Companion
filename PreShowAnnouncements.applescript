@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.6.5"
+property kScriptVersion : "1.6.7"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -256,7 +256,7 @@ on showTimeFromControlCue()
 			"pre-show control cue is missing from this workspace.")
 
 	tell application id "com.figure53.QLab.5"
-		set rawName to q name of ctrlCue
+		set rawName ""
 	end tell
 
 	set s to firstTimeTokenSeconds(rawName)
@@ -286,7 +286,7 @@ on buildPreShow(showTimeText)
 	set cueIndex to 0
 
 	-- Problems are collected so one missing file won't affect the
-	-- other seven cues. The summary at the end reports all of them.
+	-- other cues. The summary at the end reports all of them.
 	set numberClashes to {}
 	set triggerFailures to {}
 	set levelFailures to {}
@@ -882,10 +882,9 @@ end applyPatch
 
 -- Set a cue's master, left and right levels. Returns true if all three took.
 --
--- Row 0 column 0 is the cue's master. Rows and columns from 1 are the
--- crosspoints, so a stereo file on default routing is left at 1/1 and right
--- at 2/2. Each is tried on its own, so a mono file still gets its master and
--- left set rather than failing outright.
+-- Row 0 holds the master and output levels, so column 0 is the cue master
+-- and columns 1 and 2 are left and right out. Each is tried on its own, so
+-- a mono file still gets its master and left set rather than failing.
 on applyLevels(theCue, theLevel)
 	-- A level edited down to two numbers would fail on item 3 rather than
 	-- say so, and the summary would blame the cue instead of the config.
