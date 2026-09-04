@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.6.7"
+property kScriptVersion : "1.6.9"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -256,7 +256,7 @@ on showTimeFromControlCue()
 			"pre-show control cue is missing from this workspace.")
 
 	tell application id "com.figure53.QLab.5"
-		set rawName ""
+		set rawName to q name of ctrlCue
 	end tell
 
 	set s to firstTimeTokenSeconds(rawName)
