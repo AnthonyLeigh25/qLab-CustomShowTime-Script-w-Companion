@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.6.9"
+property kScriptVersion : "1.7.0"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -309,35 +309,22 @@ on buildPreShow(showTimeText)
 
 	warnAboutMissingFiles(theSchedule)
 
-	-- Declared out here, not inside the tell blocks below. Inside a tell
-	-- block, "set x to missing value" is resolved against the application's
-	-- terminology and sent to QLab as an event, so no script variable is ever
-	-- created and reading it later raises -2753. Out here it is a plain local,
-	-- and assignments inside the tell block update it as expected.
-	set theList to missing value
-
 	tell application id "com.figure53.QLab.5"
 		if (count of workspaces) is 0 then ¬
 			error "No QLab workspace is open. Open your workspace and try again."
 
 		tell front workspace
 
-			-- Check the list was made. Every cue below is moved into it.
-			--
-			-- theList is given a value before the make, not by it. A command
-			-- that returns nothing leaves the variable undefined rather than
-			-- empty, and the next line to touch it raises -2753 instead of
-			-- anything that explains itself.
-			try
-				set theList to make type "Cue List"
-			end try
-			if theList is missing value then
-				try
-					set theList to last cue list
-				end try
-			end if
-			if theList is missing value then ¬
+			-- make hands nothing back in QLab 5, so its result is never
+			-- assigned to anything. Doing so leaves the variable undefined and
+			-- the next line to read it fails with -2753. The list is counted
+			-- before and after instead, then picked up as the last one, so a
+			-- make that quietly did nothing cannot rename somebody else's list.
+			set listsBefore to (count of (every cue list))
+			make type "Cue List"
+			if (count of (every cue list)) is not (listsBefore + 1) then ¬
 				error "QLab would not make a new cue list. Nothing was built."
+			set theList to last cue list
 			set q name of theList to listName
 			if (q name of theList) is not listName then ¬
 				error "Could not create or name the new cue list."
@@ -845,23 +832,16 @@ end cleanupScriptSource
 -- than anything that explains itself. The selection is kept only as a
 -- fallback for a QLab version that returns nothing.
 on newCue(theType)
-	-- Declared before the tell block, for the same reason as theList in
-	-- buildPreShow. A missing value assignment inside a tell block never
-	-- creates the variable.
-	set theCue to missing value
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
-			try
-				set theCue to make type theType
-			end try
-			if theCue is missing value then
-				set sel to (selected as list)
-				if (count of sel) is 0 then error ¬
-					("QLab made no " & theType & " cue, or would not say " & ¬
-						"which one. Nothing was built.")
-				set theCue to last item of sel
-			end if
-			return theCue
+			-- make hands nothing back, so the new cue is read from the
+			-- selection straight afterwards rather than from the make.
+			make type theType
+			set sel to (selected as list)
+			if (count of sel) is 0 then error ¬
+				("QLab made no " & theType & " cue, or would not say " & ¬
+					"which one. Nothing was built.")
+			return last item of sel
 		end tell
 	end tell
 end newCue
