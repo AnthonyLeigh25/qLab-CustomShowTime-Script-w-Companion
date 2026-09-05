@@ -102,9 +102,9 @@ on testM()
 end testM
 
 
-on verdict(msg, before)
-	set a to listCount()
-	if a < before then return "GONE. " & msg
+on verdict(msg, wasCount)
+	set nowCount to listCount()
+	if nowCount < wasCount then return "GONE. " & msg
 	return "STILL THERE. " & msg
 end verdict
 
