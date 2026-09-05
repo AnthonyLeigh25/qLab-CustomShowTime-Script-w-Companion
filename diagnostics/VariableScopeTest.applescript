@@ -1,105 +1,120 @@
--- Throwaway diagnostic for the -2753 error on theList.
+-- Throwaway diagnostic, round three. Deleting a cue list.
 --
--- Round one showed all four ways of holding a new cue list in a variable
--- fail the same way, so the sentinel and the placing of the declaration are
--- both innocent. Round two asks the two questions that are left. Does a
--- plain variable survive being read inside a tell block at all, and does
--- make actually hand anything back.
+-- The build now works. The cleanup empties the list but leaves the list
+-- itself behind, and the delete sits inside a try so whatever QLab says
+-- about it never reaches us. Each test below makes its own list, tries one
+-- way of deleting it, and reports the error and whether the count actually
+-- dropped. A form can fail quietly, so the count is what counts.
 --
--- Run this in Script Editor with the workspace open and read the Result
--- pane. It leaves a couple of empty cue lists behind. Delete them after.
-
-global gText
+-- Run in Script Editor with the workspace open. Delete any leftover test
+-- lists by hand afterwards.
 
 
--- E: a plain string set outside the tell, read inside it. Nothing to do
--- with QLab or with make. If this fails, no variable can cross into a tell
--- block here and the whole script needs rethinking.
-on testE()
-	set L to "hello"
+on freshList(nm)
+	tell application id "com.figure53.QLab.5"
+		tell front workspace
+			make type "Cue List"
+			set q name of last cue list to nm
+		end tell
+	end tell
+end freshList
+
+
+on listCount()
+	tell application id "com.figure53.QLab.5"
+		tell front workspace
+			return (count of (every cue list))
+		end tell
+	end tell
+end listCount
+
+
+-- J: delete the object itself, reached by position.
+on testJ()
+	freshList("DEL TEST J")
+	set b to listCount()
+	set msg to "no error"
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
 			try
-				return "ok, got " & L
+				delete last cue list
 			on error e number n
-				return "FAILED " & n & " - " & e
+				set msg to ("error " & n & " - " & e)
 			end try
 		end tell
 	end tell
-end testE
+	return my verdict(msg, b)
+end testJ
 
 
--- F: the same, but declared local first.
-on testF()
-	local L
-	set L to "hello"
+-- K: by name. This is what the cleanup cue does now.
+on testK()
+	freshList("DEL TEST K")
+	set b to listCount()
+	set msg to "no error"
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
 			try
-				return "ok, got " & L
+				delete cue list "DEL TEST K"
 			on error e number n
-				return "FAILED " & n & " - " & e
+				set msg to ("error " & n & " - " & e)
 			end try
 		end tell
 	end tell
-end testF
+	return my verdict(msg, b)
+end testK
 
 
--- G: the same again, but through a global.
-on testG()
-	set gText to "hello"
+-- L: by a whose clause on the name.
+on testL()
+	freshList("DEL TEST L")
+	set b to listCount()
+	set msg to "no error"
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
 			try
-				return "ok, got " & gText
+				delete (first cue list whose q name is "DEL TEST L")
 			on error e number n
-				return "FAILED " & n & " - " & e
+				set msg to ("error " & n & " - " & e)
 			end try
 		end tell
 	end tell
-end testG
+	return my verdict(msg, b)
+end testL
 
 
--- H: what make hands back, asked without any variable in the way. If make
--- returns nothing then every set in round one had nothing to store, which
--- would explain all four failures on its own.
-on testH()
+-- M: by unique id, which the workspace lists as one of the ways in.
+on testM()
+	freshList("DEL TEST M")
+	set b to listCount()
+	set msg to "no error"
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
 			try
-				return "class is " & ((class of (make type "Cue List")) as text)
+				set u to uniqueID of last cue list
+				delete cue list id u
 			on error e number n
-				return "FAILED " & n & " - " & e
+				set msg to ("error " & n & " - " & e)
 			end try
 		end tell
 	end tell
-end testH
+	return my verdict(msg, b)
+end testM
 
 
--- I: the candidate fix. No variable at all. Make the list, then reach it
--- back through the workspace by position and by name.
-on testI()
-	tell application id "com.figure53.QLab.5"
-		tell front workspace
-			try
-				make type "Cue List"
-				set q name of last cue list to "SCOPE TEST I"
-				return "ok, named " & (q name of cue list "SCOPE TEST I")
-			on error e number n
-				return "FAILED " & n & " - " & e
-			end try
-		end tell
-	end tell
-end testI
+on verdict(msg, before)
+	set a to listCount()
+	if a < before then return "GONE. " & msg
+	return "STILL THERE. " & msg
+end verdict
 
 
 on runTests()
 	set out to {}
-	set end of out to "E " & testE()
-	set end of out to "F " & testF()
-	set end of out to "G " & testG()
-	set end of out to "H " & testH()
-	set end of out to "I " & testI()
+	set end of out to "J " & testJ()
+	set end of out to "K " & testK()
+	set end of out to "L " & testL()
+	set end of out to "M " & testM()
 	return out
 end runTests
 
