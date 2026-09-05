@@ -283,7 +283,7 @@ Hopefully these things help.
 | Nothing fires overnight | The Mac slept (Part 8.3), or the workspace was not open |
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
-| Cleanup fires but the list is still there | The cues are gone even if the list is not, so nothing can fire again. The list is renamed `[DONE] Temp-PreShow ...` and `PSTIME`'s notes carry QLab's own reason |
+| Cleanup fires but the cues are still there | Nothing was emptied. The list is renamed `[DONE] Temp-PreShow ...` and `PSTIME`'s notes carry QLab's own reason |
 | A list called `Temp-PreShow (empty)` is sitting in the workspace | That is meant to happen. The list is kept and refilled by the next build, because deleting one makes QLab ask you to confirm and nothing unattended can answer that |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
 | `-1752 the script does not seem to belong to AppleScript` | The `.scpt` is not a compiled script. Re-export with File Format: Script, see Part 4 |
@@ -291,6 +291,63 @@ Hopefully these things help.
 | `-1728 can't get last item of {}` | An old copy of `PreShow.scpt`. Compile and export again |
 | Neither `PSOK` nor `PSFAIL` fires | The cues are missing, disarmed, or their numbers do not match `kBuildOKCue` and `kBuildFailCue` |
 | A feedback cue is still running during the show | The cleanup cue did not run, so nothing stopped it. Same cause as a list left behind |
+
+---
+
+## Companion fault finding
+
+Most Stream Deck faults are one variable not reaching the BUILD button. Work down this list, it is cheapest first.
+
+### 1. Read what actually arrived
+
+Press an hour, a minute, then BUILD, and look at the **name of the `PSTIME` cue in QLab**.
+
+| What the cue name says | What it means |
+|---|---|
+| `18:30` | Companion is fine. The fault is in QLab, not on the Stream Deck |
+| `:30` | The hour never arrived. Carry on down this list |
+| `18:` | The minute never arrived. Same list, swap hour for minute |
+| `SHOW TIME - not set` | Nothing arrived at all. The OSC message is not reaching QLab, check Part 8 |
+
+Check `PSTIME`'s notes too. `BUILD REFUSED - no show time set` means the script rejected a half-filled time on purpose, so it did not build for half past midnight. That is the safety net working, not a second fault.
+
+### 2. Watch the variable change
+
+*Variables tab > Custom Variables*. Press an hour button and watch `showHour`. If it does not move, the button never ran and steps 3 to 7 are where to look.
+
+### 3. Check the name character for character
+
+Companion is case sensitive. `showHour` on the hour buttons has to match `$(custom:showHour)` on BUILD exactly. `showhour` resolves to nothing and reaches QLab as an empty string, which is precisely the `:30` fault above.
+
+### 4. Check which variable the button sets
+
+If the hour page was made by duplicating the minute page, the buttons may still be setting `showMinute`. Open one hour button and read its action rather than assuming.
+
+### 5. Check the order of the actions
+
+`Custom Variable Set Value` must come **before** `Set surface page`. Changing page first can cut the rest of the press short.
+
+### 6. Check it is on press
+
+Both actions belong in the **down** group. A value set on release is unreliable once the page has already changed.
+
+### 7. Check the steps
+
+A button with more than one step only runs the step it is on.
+
+### 8. Check the value
+
+Plain `18`, no trailing space, and single digits padded to two characters. `09`, not `9`.
+
+### 9. Check the page
+
+If NEW SHOW is not navigating to page 11, the hour buttons being pressed are not the ones that were set up.
+
+### 10. Remember they do not persist
+
+Both variables are deliberately set to not persist. Restarting Companion between picking a time and pressing BUILD blanks them.
+
+> Put `$(custom:showHour):$(custom:showMinute)` on the NEW SHOW button text. The Stream Deck then shows the time before you commit to it, and most of the faults above become visible without opening Companion at all.
 
 ---
 
