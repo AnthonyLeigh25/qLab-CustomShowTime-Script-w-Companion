@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.7.0"
+property kScriptVersion : "1.7.1"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -698,9 +698,12 @@ on deleteList(theList)
 			try
 				delete (every cue of theList)
 			end try
+			-- Addressed by a whose clause, not by name. delete cue list
+			-- "name" compiles into a set and fails with -10006, which the
+			-- try then hid, so the list survived every purge.
 			if doomedName is not "" then
 				try
-					delete cue list doomedName
+					delete (first cue list whose q name is doomedName)
 					return true
 				end try
 			end if
@@ -766,7 +769,7 @@ on cleanupScriptSource(listName)
 	else
 		set theAction to "                        delete (every cue of TL)" & LF
 		set theAction to theAction & "                        try" & LF
-		set theAction to theAction & "                            delete cue list " & qt & listName & qt & LF
+		set theAction to theAction & "                            delete (first cue list whose q name is " & qt & listName & qt & ")" & LF
 		set theAction to theAction & "                        end try"
 	end if
 
