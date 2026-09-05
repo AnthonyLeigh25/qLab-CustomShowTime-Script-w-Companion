@@ -18,7 +18,7 @@ There is no default show time. This is for creating those weird show times that 
 
 Companion sends the chosen time over OSC into the name of a permanent QLab cue, then starts a Script cue. That cue loads the compiled AppleScript, reads the time and builds the list. Voila!
 
-A login item runs the same script's purge handler each morning. QLab autosaves the workspace, so without it a list built for a cancelled show would come back the next day, which isn't really ideal. I don't want Duty Managers calling me for random show calls being triggered at the wrong times. I already have enough to deal with.
+A `PSPURGE` cue sits on the control list with a wall clock trigger and clears everything out at 04:00, and a login item does the same job on the mornings the Mac was off. QLab autosaves the workspace, so without it a list built for a cancelled show would come back the next day, which isn't really ideal. I don't want Duty Managers calling me for random show calls being triggered at the wrong times. I already have enough to deal with.
 
 ## Did it work though
 

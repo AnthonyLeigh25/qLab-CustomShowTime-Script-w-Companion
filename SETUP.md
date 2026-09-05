@@ -78,7 +78,7 @@ Edit the `.applescript` later and you must **export it again**, or QLab carries 
 
 These three cues stay in your show file. Companion drives the system through them.
 
-Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
+Make a new cue list called `PRE-SHOW CONTROL`, then add six cues to it.
 
 **1. Memo cue**
 - Cue number: `PSTIME`
@@ -113,11 +113,23 @@ Make a new cue list called `PRE-SHOW CONTROL`, then add three cues to it.
 - **Arm it.**
 - Same idea, but for a failure. A red button or a different sound.
 
+**6. Morning purge cue**
+- Cue number: `PSPURGE`
+- Name: `DAILY PURGE`
+- **Arm it.**
+- Script:
+  ```applescript
+  tell (load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")) to purgeFromQLabCue()
+  ```
+- In the cue's **Triggers** tab, tick **Wall clock** and set it to **04:00**, every day. Pick any hour when a show list should never exist.
+
+This is the cue that stops yesterday's announcements playing today. Part 7 explains why it is not optional and what else is needed alongside it.
+
 One line, not two. Loading into a variable and then telling that variable works in Script Editor, but a Script cue that loses the first line leaves you with `The variable b is not defined` and no clue why. One statement cannot half run.
 
 Leave **Run in separate process** ticked on both Script cues. That is QLab's default.
 
-`PSTIME` holds the show time in its name. `PSBUILD` reads it and builds. `PSCLEAR` clears everything. `PSOK` and `PSFAIL` are started by the script to say how the build went.
+`PSTIME` holds the show time in its name. `PSBUILD` reads it and builds. `PSCLEAR` clears everything. `PSOK` and `PSFAIL` are started by the script to say how the build went. `PSPURGE` clears everything again each morning on its own.
 
 A build counts as failed if nothing was built at all, if any cue's wall clock trigger would not enable, if any audio file was missing, or if the cleanup cue could not be made. All four leave a list that looks fine and does not work. If you do not want the feedback cues, set `kBuildOKCue` and `kBuildFailCue` to `""` in the script.
 
@@ -130,8 +142,9 @@ Both are stopped before either is started, when CANCEL is pressed, and by the cl
 1. Rename `PSTIME` to `SHOW TIME 19:30`, using a time a few minutes ahead.
 2. GO `PSBUILD`. The temporary cue list should appear.
 3. `PSOK` should have fired on its own straight after the build. If you built it as a looping or holding cue, GO `PSCLEAR` and check it stops.
-4. GO `PSCLEAR`. The list should vanish, and `PSTIME` should go back to `SHOW TIME - not set`.
+4. GO `PSCLEAR`. The list should empty out and be renamed `Temp-PreShow (empty)`, and `PSTIME` should go back to `SHOW TIME - not set`.
 5. Rename `PSTIME` back to `SHOW TIME - not set` and GO `PSBUILD` again. Nothing should be built. `PSTIME`'s notes should read `BUILD REFUSED - no show time set`, QLab will flag an error on the Script cue, and `PSFAIL` should fire. **That is correct.**
+6. Build once more, then GO `PSPURGE` by hand. It should do exactly what `PSCLEAR` did. Do not wait until 04:00 to find out whether it works.
 
 If `PSBUILD` does nothing at all, check your QLab licence first, then Part 9.
 
@@ -141,7 +154,19 @@ If `PSBUILD` does nothing at all, check your QLab licence first, then Part 9.
 
 QLab autosaves, so a list built today is written to disk. If the show is cancelled, or QLab is quit before the cleanup cue runs, tomorrow's launch brings that list back **armed**, and it announces again at yesterday's times. The daily restart does not clear it. This does.
 
-1. In Script Editor, open a new document and paste these two lines:
+There are two ways in and they cover different mornings, so set up both.
+
+### The `PSPURGE` cue
+
+Already built in Part 5. It fires at 04:00 every day from its own wall clock trigger.
+
+It only fires if QLab is running with the workspace open and the Mac is awake at 04:00. That is the normal state of the machine, so this is the one that does the work almost every day.
+
+### The login item
+
+This one covers the mornings the cue cannot: the Mac was off overnight, QLab was quit, or somebody closed the workspace.
+
+1. In Script Editor, open a new document and paste this line:
    ```applescript
    tell (load script (POSIX file "/Users/qlab/Scripts/PreShow.scpt")) to purgeOnLaunch()
    ```
@@ -150,6 +175,8 @@ QLab autosaves, so a list built today is written to disk. If the show is cancell
 4. **System Settings > General > Login Items**, then **+**, and add `PreShow Purge.app`.
 
 It waits up to five minutes for QLab to open a workspace, so it does not matter whether it runs before or after QLab.
+
+Between the two, every morning is covered. Running both on the same morning is harmless, since the second one finds nothing left to clear.
 
 ## Part 8 - Set up the Mac to run unattended
 
@@ -186,6 +213,7 @@ If things are skipped, might not work another time so check all of these. Ta.
 - Script Editor controlling QLab (Part 3)
 - QLab controlling QLab, meaning the Script cues (Part 6)
 - PreShow Purge.app controlling QLab (Part 7)
+- `PSPURGE` uses the same permission as the other Script cues, so Part 6 covers it
 
 Open *System Settings > Privacy & Security > Automation*. All three should be listed with QLab underneath, switched on.
 
@@ -281,7 +309,7 @@ Hopefully these things help.
 | Cues built but silent | File paths wrong. The summary lists missing files. Check a cue's Audio tab |
 | Wall clock boxes not ticked | Reported in the summary. Tick by hand, and check the property name in QLab's dictionary |
 | Nothing fires overnight | The Mac slept (Part 8.3), or the workspace was not open |
-| Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
+| Yesterday's list still present | `PSPURGE` disarmed or its wall clock trigger not ticked, and the purge app not installed or its permission reset by moving it. Both have to fail for a list to survive |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
 | Cleanup fires but the cues are still there | Nothing was emptied. The list is renamed `[DONE] Temp-PreShow ...` and `PSTIME`'s notes carry QLab's own reason |
 | A list called `Temp-PreShow (empty)` is sitting in the workspace | That is meant to happen. The list is kept and refilled by the next build, because deleting one makes QLab ask you to confirm and nothing unattended can answer that |

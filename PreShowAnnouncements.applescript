@@ -199,7 +199,18 @@ on clearPreShow()
 end clearPreShow
 
 
--- The morning purge. Run this from a login item every day.
+-- The morning purge, run from a cue inside the workspace on a wall clock
+-- trigger. No waiting about, because a cue in the workspace has fired, so
+-- the workspace is plainly open.
+on purgeFromQLabCue()
+	set kSilent to true
+	return ("daily purge: " & clearPreShow())
+end purgeFromQLabCue
+
+
+-- The same purge, run from a login item instead. This one covers the morning
+-- after the Mac was off or QLab was closed at the trigger time, when the cue
+-- above never got the chance to fire.
 on purgeOnLaunch()
 	set kSilent to true
 	-- A login item can start before QLab is ready, so wait for the workspace.
@@ -1140,19 +1151,24 @@ end trimText
 --     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to buildFromQLabCue()
 --   PSCLEAR  script cue:
 --     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to clearPreShow()
+--   PSPURGE  script cue, armed, with a daily wall clock trigger at 04:00:
+--     tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to purgeFromQLabCue()
 --
 -- Export this file via file > export > file format: script to that .scpt
 -- path. QLab, the login item and script editor then share one copy, so there
 -- is no second version to keep in step.
 --
 -- ON THE MAC, a login item that runs purgeOnLaunch() every morning. Save it
--- as an applet (file > export > file format: application) holding these two
--- lines, then add it to login items:
+-- as an applet (file > export > file format: application) holding this line,
+-- then add it to login items:
 --
 --   tell (load script (POSIX file "/Users/you/Scripts/PreShow.scpt")) to purgeOnLaunch()
 --
--- This is required, not optional. QLab autosaves, so a list built yesterday
--- is on disk and would come back armed today.
+-- PSPURGE and the login item cover different mornings. The cue only fires
+-- with QLab open and the Mac awake. The login item only runs when the Mac
+-- starts. Between them every morning is covered, so keep both. QLab
+-- autosaves, so a list built yesterday is on disk and would come back armed
+-- today.
 --
 -- IN COMPANION, three pages on the qlabfb connection, plus two custom
 -- variables, showHour and showMinute. Turn off persist value on both, so a
