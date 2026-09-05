@@ -35,8 +35,8 @@ property kScriptVersion : "1.8.0"
 --
 -- Patch is the number of a QLab audio output patch, so 1 is the first one in
 -- Workspace Settings > Audio. Use 0 to leave a cue on the workspace default.
-property kWelcomeFile : "/Users/you/Show Audio/Announcements/Welcome.wav"
-property kWelcomePatch : 1
+property kWelcomeFile : "/Users/lphproduction/Desktop/CustomShow Applescript - DO NOT DELETE/Event Welcome.wav"
+property kWelcomePatch : 4
 property kWelcomeLevel : {0, 0, 0}
 
 -- Spare. Not in the schedule at the moment, kept for when a 10 minute call
@@ -45,12 +45,12 @@ property kTenMinFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
 property kTenMinPatch : 1
 property kTenMinLevel : {0, 0, 0}
 
-property kFiveMinFile : "/Users/you/Show Audio/Announcements/5 Minute Call.wav"
-property kFiveMinPatch : 1
+property kFiveMinFile : "/Users/lphproduction/Desktop/CustomShow Applescript - DO NOT DELETE/Event 5 Min Call Photos.wav"
+property kFiveMinPatch : 4
 property kFiveMinLevel : {0, 0, 0}
 
-property kFinalCallFile : "/Users/you/Show Audio/Announcements/10 Minute Call.wav"
-property kFinalCallPatch : 1
+property kFinalCallFile : "/Users/lphproduction/Desktop/CustomShow Applescript - DO NOT DELETE/Event Final Call.wav"
+property kFinalCallPatch : 4
 property kFinalCallLevel : {0, 0, 0}
 
 -- There is no default show time. The time is either typed into
