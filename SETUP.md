@@ -251,7 +251,7 @@ It's just like a dress rehearsal! We love those....right? I'm getting delierious
 5. Let the T-1 cue fire on its own. Listen to it in the house.
 6. Press **CANCEL**. The list should disappear and `PSTIME` should reset.
 7. If `PSOK` or `PSFAIL` holds rather than plays once, build again and let the cleanup cue run at show time. It should stop both before it deletes the list.
-8. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have removed the stale list.
+8. Build once more, then **quit QLab before the cleanup cue runs**, and restart the Mac. After login the purge should have emptied the stale list.
 
 Step 8 is the one that proves you are safe on a cancelled show. Do not skip it, or I'll steal your gaffa tape.
 
@@ -284,7 +284,7 @@ Hopefully these things help.
 | Yesterday's list still present | Purge app not installed, or its permission was reset by moving it |
 | Announcements fired on a dark day | Same as above. The purge is the only thing preventing this |
 | Cleanup fires but the list is still there | The cues are gone even if the list is not, so nothing can fire again. The list is renamed `[DONE] Temp-PreShow ...` and `PSTIME`'s notes carry QLab's own reason |
-| An empty `[DONE]` list is left behind each show | `delete cue list` was refused. Harmless, the cues are gone. Delete the empty lists by hand when they build up |
+| A list called `Temp-PreShow (empty)` is sitting in the workspace | That is meant to happen. The list is kept and refilled by the next build, because deleting one makes QLab ask you to confirm and nothing unattended can answer that |
 | `PSFAIL` fires but the list looks right | A missing audio file, a wall clock box that would not tick, or no cleanup cue. The summary and `PSTIME`'s notes say which |
 | `-1752 the script does not seem to belong to AppleScript` | The `.scpt` is not a compiled script. Re-export with File Format: Script, see Part 4 |
 | `-2753 the variable b is not defined` | The Script cue is using the old two line loader. Use the single line in Part 5 |
@@ -325,7 +325,7 @@ Everything you can change is at the top of `PreShowAnnouncements.applescript`. E
 | `kAddMemoCue` | Configuration | Puts a memo at the top of the list showing the show time | `true` or `false` |
 | `kAddCleanupCue` | Configuration | Adds the cue that clears the list at show time | `true` or `false`. Only turn off if you will delete the list by hand |
 | `kCleanupOffsetMinutes` | Configuration | When the cleanup runs, in minutes before the show | Any whole number. `0` is show time, `-5` is five minutes after it |
-| `kCleanupAction` | Configuration | What the cleanup does to the list | `"delete"` removes it, `"disarm"` keeps it and marks it `[DONE]` |
+| `kEmptyListName` | Configuration | What the list is called once emptied | Any text starting with `kListPrefix`, so the next build finds and reuses it |
 | `announcementSchedule()` | Schedule | The calls themselves, one row each | Rows of `{minutes before show, cue name, audio file, colour, level, patch}`. Add, remove or reorder freely |
 
 Colour names must match the ones QLab offers in the cue inspector. `"none"` leaves a cue uncoloured. Options: red, orange, green, blue, purple and none

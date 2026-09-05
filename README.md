@@ -2,7 +2,7 @@
 
 Self-building and firing Front of house calls using applescript. This is primarily for a FOH QLab System that I already use with Companion for those weird and pesky times we don't already have made. So hopefully this works :-)
 
-On a stream deck with companion, press New Show, pick the time and press build. Simples! Then QLab builds a temporary cue list of pre-show announcements. Each is triggered by the world clock. At show time or system restart, the list deletes itself. Whatever is configurated, if I remember what I set.
+On a stream deck with companion, press New Show, pick the time and press build. Simples! Then QLab builds a temporary cue list of pre-show announcements. Each is triggered by the world clock. At show time or system restart, the list empties itself. Whatever is configurated, if I remember what I set.
 
 ## Three Streamdeck buttons
 

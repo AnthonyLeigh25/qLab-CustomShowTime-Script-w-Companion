@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.7.1"
+property kScriptVersion : "1.8.0"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
@@ -101,11 +101,10 @@ property kAddCleanupCue : true
 -- negative number for after the show starts, so -5 is five minutes in.
 property kCleanupOffsetMinutes : -1
 
--- What the cleanup cue does:
---   "delete"  removes the cue list. Cleanest.
---   "disarm"  keeps the list but disarms it and marks it [DONE], so you can
---             see what ran.
-property kCleanupAction : "delete"
+-- What the pre-show list is called once it has been emptied. It keeps the
+-- prefix above, so the next build finds it and fills it back in rather than
+-- making a second one.
+property kEmptyListName : "Temp-PreShow (empty)"
 
 -- The schedule: {minutes before show, cue name, audio file, colour, level,
 -- patch}.
@@ -143,20 +142,19 @@ on run
 	-- Companion press could leave this true. Reset it.
 	set kSilent to false
 
-	-- Clear any leftover list first. Two lists means two sets of triggers, and both of them fire. No bueno.
+	-- Deal with any leftover list first. Two lists means two sets of triggers,
+	-- and both of them fire. No bueno.
 	set existingList to findExistingList()
 	if existingList is not missing value then
 		set existingTime to timeFromListName(nameOfList(existingList))
 		set whatNow to chooseExistingAction(existingTime)
-		if whatNow is "DELETE" then
-			deleteList(existingList)
-			display dialog "Deleted the old pre-show cue list." buttons {"OK"} ¬
+		if whatNow is "CLEAR" then
+			emptyList(existingList)
+			display dialog "Emptied the old pre-show cue list." buttons {"OK"} ¬
 				default button 1 with title "Pre-Show Announcements"
-			return "deleted"
-		else
-			-- Rebuild: delete the old one and carry on to the build below
-			deleteList(existingList)
+			return "emptied"
 		end if
+		-- Otherwise carry on. The build empties this list and fills it again.
 	end if
 
 	return buildPreShow(askForShowTime(""))
@@ -175,17 +173,13 @@ end run
 -- The full wiring is at the foot of this file.
 --------------------------------------------------------------------------------
 
--- Read the show time from the control cue and build. Any old list is deleted first.
+-- Read the show time from the control cue and build. Any old list is emptied
+-- and reused.
 on buildFromQLabCue()
 	set kSilent to true
 	try
 		-- No fallback. An unset time raises an error, QLab shows it on the script cue, and nothing is built.
 		set showTimeText to showTimeFromControlCue()
-		repeat
-			set existingList to findExistingList()
-			if existingList is missing value then exit repeat
-			deleteList(existingList)
-		end repeat
 		return buildPreShow(showTimeText)
 	on error errMsg
 		-- Nothing was built at all. Fire the fail cue, then re-raise so QLab
@@ -195,17 +189,10 @@ on buildFromQLabCue()
 	end try
 end buildFromQLabCue
 
--- Delete the list and clear the stored show time. Wire this to a cancel button.
+-- Empty the list and clear the stored show time. Wire this to a cancel button.
 on clearPreShow()
 	set kSilent to true
-	set n to 0
-	repeat
-		set existingList to findExistingList()
-		if existingList is missing value then exit repeat
-		deleteList(existingList)
-		set n to n + 1
-		if n > 20 then exit repeat
-	end repeat
+	set n to (count of emptyPreShowLists())
 	stopFeedbackCues()
 	resetControlCue()
 	return ("cleared " & n & " list(s)")
@@ -309,34 +296,19 @@ on buildPreShow(showTimeText)
 
 	warnAboutMissingFiles(theSchedule)
 
+	set theList to prepareList(listName)
+
 	tell application id "com.figure53.QLab.5"
 		if (count of workspaces) is 0 then ¬
 			error "No QLab workspace is open. Open your workspace and try again."
 
 		tell front workspace
 
-			-- make hands nothing back in QLab 5, so its result is never
-			-- assigned to anything. Doing so leaves the variable undefined and
-			-- the next line to read it fails with -2753. The list is counted
-			-- before and after instead, then picked up as the last one, so a
-			-- make that quietly did nothing cannot rename somebody else's list.
-			set listsBefore to (count of (every cue list))
-			make type "Cue List"
-			if (count of (every cue list)) is not (listsBefore + 1) then ¬
-				error "QLab would not make a new cue list. Nothing was built."
-			set theList to last cue list
-			set q name of theList to listName
-			if (q name of theList) is not listName then ¬
-				error "Could not create or name the new cue list."
-			try
-				set armed of theList to true
-			end try
-
 			-- A memo at the top, so the show time is readable
 			if kAddMemoCue then
 				set memoCue to my newCue("Memo")
 				set q name of memoCue to ("SHOW AT " & showTimeText & ¬
-					"  -  delete this cue list after the show")
+					"  -  this cue list empties itself after the show")
 				set q color of memoCue to kFinalColour
 				try
 					move memoCue to end of theList
@@ -426,12 +398,13 @@ on buildPreShow(showTimeText)
 					set script source of cleanupCue to ¬
 						my cleanupScriptSource(listName)
 					set q name of cleanupCue to (cleanupText & ¬
-						"  -  CLEAN UP: " & kCleanupAction & " this cue list")
+						"  -  CLEAN UP: empty this cue list")
 					set q color of cleanupCue to kFinalColour
 					set notes of cleanupCue to ("Runs at " & cleanupText & ¬
-						" and " & kCleanupAction & "s the cue list \"" & ¬
-						listName & "\", so these wall clock triggers don't " & ¬
-						"fire again tomorrow." & return & ¬
+						" and empties the cue list \"" & listName & ¬
+						"\", so these wall clock triggers don't fire again " & ¬
+						"tomorrow. The list itself is kept and refilled by " & ¬
+						"the next build." & return & ¬
 						"Re-run the builder to change the show time.")
 					set armed of cleanupCue to true
 
@@ -455,7 +428,7 @@ on buildPreShow(showTimeText)
 					set cleanupMade to true
 					set end of reportLines to ("  " & cleanupText & ¬
 						"   T-" & kCleanupOffsetMinutes & tab & ¬
-						"CLEAN UP (" & kCleanupAction & " cue list)")
+						"CLEAN UP (empty cue list)")
 				on error errMsg
 					-- Keep the reason, the summary reports it
 					set cleanupError to errMsg
@@ -477,9 +450,8 @@ on buildPreShow(showTimeText)
 
 	if kAddCleanupCue then
 		if cleanupMade then
-			set summary to summary & return & "The list " & kCleanupAction & ¬
-				"s itself at show time, so nothing is left armed for " & ¬
-				"tomorrow." & return
+			set summary to summary & return & "The list empties itself at " & ¬
+				"show time, so nothing is left armed for tomorrow." & return
 		else
 			set summary to summary & return & "WARNING: the cleanup cue could " & ¬
 				"NOT be created"
@@ -684,40 +656,89 @@ on nameOfList(theList)
 	end tell
 end nameOfList
 
--- Delete a cue list. Returns true if the list itself went.
---
--- A cue list can only be deleted as an element of the workspace, addressed by
--- name, index or id. 
-on deleteList(theList)
+-- Empty a pre-show list and park it. The list itself is kept on purpose.
+-- QLab puts a confirmation dialog on screen for every cue list it deletes,
+-- and nothing running unattended can answer it, so the same list is emptied
+-- and refilled instead of being thrown away and made again.
+on emptyList(theList)
 	tell application id "com.figure53.QLab.5"
 		tell front workspace
-			set doomedName to ""
-			try
-				set doomedName to q name of theList
-			end try
 			try
 				delete (every cue of theList)
 			end try
-			-- Addressed by a whose clause, not by name. delete cue list
-			-- "name" compiles into a set and fails with -10006, which the
-			-- try then hid, so the list survived every purge.
-			if doomedName is not "" then
-				try
-					delete (first cue list whose q name is doomedName)
-					return true
-				end try
-			end if
-			-- It would not go. Disarm it and put the marker on the front of
-			-- the name, so nothing fires and findExistingList stops handing
-			-- it back.
 			try
 				set armed of theList to false
-				set q name of theList to ("[DONE] " & doomedName)
+			end try
+			try
+				set q name of theList to kEmptyListName
+				return true
 			end try
 		end tell
 	end tell
 	return false
-end deleteList
+end emptyList
+
+
+-- Empty every pre-show list there is, and hand them back. There should only
+-- ever be one, but an older workspace might carry more.
+on emptyPreShowLists()
+	set found to {}
+	tell application id "com.figure53.QLab.5"
+		if (count of workspaces) is 0 then return {}
+		tell front workspace
+			repeat with L in (every cue list)
+				try
+					if (q name of L) starts with kListPrefix then ¬
+						set end of found to (contents of L)
+				end try
+			end repeat
+		end tell
+	end tell
+	repeat with L in found
+		emptyList(contents of L)
+	end repeat
+	return found
+end emptyPreShowLists
+
+
+-- Hand back an empty, armed, correctly named cue list to build into. An
+-- existing one is reused. Only a workspace with none at all gets a new one.
+on prepareList(listName)
+	set found to emptyPreShowLists()
+
+	if (count of found) > 0 then
+		set theList to contents of (item 1 of found)
+	else
+		tell application id "com.figure53.QLab.5"
+			if (count of workspaces) is 0 then ¬
+				error "No QLab workspace is open. Open your workspace and try again."
+			tell front workspace
+				-- make hands nothing back in QLab 5, so its result is never
+				-- assigned to anything. Doing so leaves the variable undefined
+				-- and the next line to read it fails with -2753. The lists are
+				-- counted either side instead, so a make that quietly did
+				-- nothing cannot hand back somebody else's list.
+				set listsBefore to (count of (every cue list))
+				make type "Cue List"
+				if (count of (every cue list)) is not (listsBefore + 1) then ¬
+					error "QLab would not make a new cue list. Nothing was built."
+				set theList to last cue list
+			end tell
+		end tell
+	end if
+
+	tell application id "com.figure53.QLab.5"
+		tell front workspace
+			set q name of theList to listName
+			if (q name of theList) is not listName then ¬
+				error "Could not name the pre-show cue list."
+			try
+				set armed of theList to true
+			end try
+		end tell
+	end tell
+	return theList
+end prepareList
 
 
 -- Build the AppleScript that goes inside the cleanup script cue.
@@ -761,17 +782,12 @@ on cleanupScriptSource(listName)
 			"        end repeat" & LF
 	end if
 
-	if kCleanupAction is "disarm" then
-		set theAction to ¬
-			"                        set armed of TL to false" & LF & ¬
-			"                        set q name of TL to ((q name of TL) & " & ¬
-			qt & " [DONE]" & qt & ")"
-	else
-		set theAction to "                        delete (every cue of TL)" & LF
-		set theAction to theAction & "                        try" & LF
-		set theAction to theAction & "                            delete (first cue list whose q name is " & qt & listName & qt & ")" & LF
-		set theAction to theAction & "                        end try"
-	end if
+	-- The list is emptied and parked, never deleted. QLab asks for
+	-- confirmation on every cue list it deletes, and at show time there is
+	-- nobody at the control position to answer it.
+	set theAction to "                        delete (every cue of TL)" & LF
+	set theAction to theAction & "                        set armed of TL to false" & LF
+	set theAction to theAction & "                        set q name of TL to " & qt & kEmptyListName & qt
 
 	-- Where to leave a note if this does not work. Running unattended, an
 	-- error goes nowhere, so it is written onto the control cue instead.
@@ -785,7 +801,7 @@ on cleanupScriptSource(listName)
 			"                        try" & LF & ¬
 			"                            if (q number of NC) is " & qt & ¬
 			kShowTimeCueNumber & qt & " then set notes of NC to " & ¬
-			"(" & qt & "Cleanup could not remove the cue list. " & qt & ¬
+			"(" & qt & "Cleanup could not empty the cue list. " & qt & ¬
 			" & why)" & LF & ¬
 			"                        end try" & LF & ¬
 			"                    end repeat" & LF & ¬
@@ -795,8 +811,8 @@ on cleanupScriptSource(listName)
 	end if
 
 	return "-- auto-generated by PreShowAnnouncements.applescript." & LF & ¬
-		"-- removes the temporary pre-show cue list so its wall clock" & LF & ¬
-		"-- triggers do not fire again tomorrow." & LF & ¬
+		"-- empties the pre-show cue list so its wall clock triggers do" & LF & ¬
+		"-- not fire again tomorrow. The list itself is kept." & LF & ¬
 		"delay 2" & LF & ¬
 		"tell application id " & qt & "com.figure53.QLab.5" & qt & LF & ¬
 		"    tell front workspace" & LF & ¬
@@ -921,12 +937,12 @@ end enableWallClock
 on chooseExistingAction(existingTime)
 	set msg to "A pre-show cue list already exists"
 	if existingTime is not "" then set msg to msg & ", set for " & existingTime
-	set msg to msg & "." & return & return & "Rebuild deletes it and makes " & ¬
+	set msg to msg & "." & return & return & "Rebuild empties it and fills " & ¬
 		"it again against the current schedule and a new show time."
-	display dialog msg buttons {"Delete It", "Rebuild"} ¬
+	display dialog msg buttons {"Empty It", "Rebuild"} ¬
 		default button "Rebuild" with title "Pre-Show Announcements"
 	set b to button returned of the result
-	if b is "Delete It" then return "DELETE"
+	if b is "Empty It" then return "CLEAR"
 	return "REBUILD"
 end chooseExistingAction
 
