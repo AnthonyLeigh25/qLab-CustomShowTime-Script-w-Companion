@@ -25,7 +25,7 @@
 -- Version of this script. Major, minor, bug fix. Bumped henever a change
 -- is made. In the build summary, it states which copy QLab is
 -- running.
-property kScriptVersion : "1.8.0"
+property kScriptVersion : "1.8.1"
 
 
 -- Audio file locations, the output patch each one uses, and the level it
